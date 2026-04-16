@@ -798,7 +798,13 @@ function setTeamFormat(el){
   el.classList.add('selected');
 }
 function renum(){ document.querySelectorAll('#teamPlayerList .player-num').forEach((e,i)=>e.textContent=i+1); }
-$('addPlayerBtn').onclick=()=>addPRow('');
+$('addPlayerBtn').onclick=()=>{
+  addPRow('');
+  // Focus the new input and scroll it into view
+  const inputs=document.querySelectorAll('#teamPlayerList input');
+  const last=inputs[inputs.length-1];
+  if(last){ last.focus(); last.scrollIntoView({behavior:'smooth',block:'center'}); }
+};
 async function saveTeam(){
   const name=$('teamNameInput').value.trim();
   if(!name){ alert('Ange ett lagnamn!'); return; }
