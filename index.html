@@ -534,12 +534,14 @@ async function loadTeams(){
 }
 
 async function saveTeam_db(teamData){
-  if(!currentUser) return;
+  if(!currentUser) throw new Error('Inte inloggad');
   const row={user_id:currentUser.id,name:teamData.name,emoji:teamData.emoji||'⚽',players:teamData.players,player_styles:teamData.playerStyles||{},format:teamData.format||9};
   if(teamData.id && !teamData._new){
-    await supa.from('teams').update(row).eq('id',teamData.id).eq('user_id',currentUser.id);
+    const {error}=await supa.from('teams').update(row).eq('id',teamData.id).eq('user_id',currentUser.id);
+    if(error) throw new Error(error.message);
   } else {
-    const {data}=await supa.from('teams').insert(row).select().single();
+    const {data,error}=await supa.from('teams').insert(row).select().single();
+    if(error) throw new Error(error.message);
     if(data) teamData.id=data.id;
   }
 }
@@ -802,7 +804,6 @@ async function saveTeam(){
   if(!name){ alert('Ange ett lagnamn!'); return; }
   const players=[...document.querySelectorAll('#teamPlayerList input')].map(i=>i.value.trim()).filter(Boolean);
   if(players.length<2){ alert('Lägg till minst 2 spelare!'); return; }
-  // Collect player styles from rows
   const playerStyles={};
   document.querySelectorAll('#teamPlayerList .player-row').forEach(row=>{
     const nm=row.querySelector('input')?.value.trim();
@@ -810,8 +811,22 @@ async function saveTeam(){
   });
   const selFmt=parseInt(document.querySelector('#teamCfgFormat .cfg-opt.selected')?.dataset.val||9);
   const teamData={id:editTeamId||null,_new:!editTeamId,name,players,emoji:selEmoji,playerStyles,format:selFmt};
-  await saveTeam_db(teamData);
-  await renderHome(); showScreen('home-screen');
+
+  // Show loading state
+  const btn=$('teamSaveBtn2');
+  const origText=btn.textContent;
+  btn.textContent='SPARAR...';
+  btn.disabled=true;
+
+  try {
+    await saveTeam_db(teamData);
+    await renderHome();
+    showScreen('home-screen');
+  } catch(e) {
+    alert('Kunde inte spara laget: ' + e.message);
+    btn.textContent=origText;
+    btn.disabled=false;
+  }
 }
 $('teamSaveBtn').onclick=saveTeam;
 $('teamSaveBtn2').onclick=saveTeam;
