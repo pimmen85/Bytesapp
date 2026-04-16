@@ -218,6 +218,17 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .ov-actions{display:flex;flex-direction:column;gap:9px}
 .flash-ov{position:fixed;inset:0;background:rgba(245,197,24,.45);pointer-events:none;opacity:0;z-index:300;transition:opacity .1s}
 .flash-ov.on{opacity:1}
+/* INVITE */
+.invite-box{background:var(--card);border-radius:var(--r);padding:12px 14px;border:1px solid var(--border);margin-bottom:8px}
+.invite-code{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:6px;color:var(--accent);text-align:center;padding:8px 0;cursor:pointer;transition:opacity .2s}
+.invite-code:active{opacity:.6}
+.invite-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
+.join-row{display:flex;gap:8px;margin-bottom:8px}
+.join-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:4px;text-transform:uppercase;outline:none}
+.join-input:focus{border-color:var(--accent)}
+.join-btn{padding:11px 16px;background:var(--accent);color:#111;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap}
+.join-btn:active{background:var(--accent2)}
+.shared-badge{background:rgba(100,130,255,.18);border:1px solid rgba(100,130,255,.4);color:#9eb3ff;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:4px}
 /* LOGIN */
 .login-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:16px}
 .login-logo{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:#fff;letter-spacing:-2px;text-shadow:0 4px 24px rgba(0,0,0,.4);margin-bottom:4px}
@@ -252,7 +263,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     </div>
   </div>
   <div class="login-wrap">
-    <div class="login-logo">⚽</div>
+    
     <div class="login-sub" id="loginModeText">Logga in för att komma åt dina lag</div>
     <div class="login-form">
       <input class="login-input" id="loginEmail" type="email" placeholder="E-postadress" autocomplete="email">
@@ -275,6 +286,14 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     <div class="section-label">Dina lag</div>
     <div class="team-grid" id="teamGrid"></div>
     <button class="new-team-btn" id="newTeamBtn">+ Skapa nytt lag</button>
+
+    <div class="section-label">Gå med i ett lag</div>
+    <div class="join-row">
+      <input class="join-input" id="joinCodeInput" placeholder="KOD" maxlength="6">
+      <button class="join-btn" id="joinBtn">GÅ MED</button>
+    </div>
+    <div id="joinErr" style="font-size:12px;color:var(--danger);margin-bottom:8px;min-height:16px"></div>
+
     <div class="section-label">Senaste matcher</div>
     <div id="historySection"></div>
   </div>
@@ -464,6 +483,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 </div>
 
 <script>
+const $=id=>document.getElementById(id);
 // ── SUPABASE ──
 const SUPA_URL='https://dcnrfttxcvbzsmvjfkzl.supabase.co';
 const SUPA_KEY='sb_publishable_CNakOF65hGaWmUA8sXhwlA_LpTo-PkS';
@@ -540,6 +560,87 @@ async function saveHistory_db(entry){
   await supa.from('match_history').insert({user_id:currentUser.id,team_id:entry.teamId,date:entry.date,playtimes:entry.playtimes});
 }
 
+// ── INVITE / JOIN ──
+function genCode(){
+  return Math.random().toString(36).slice(2,8).toUpperCase();
+}
+
+async function shareTeam(teamId, existingCode, event){
+  event.stopPropagation();
+  // Check if code already exists
+  let code = existingCode;
+  if(!code){
+    // Check DB first
+    const {data} = await supa.from('shared_teams').select('invite_code').eq('team_id', teamId).single();
+    code = data?.invite_code;
+    if(!code){
+      code = genCode();
+      await supa.from('shared_teams').insert({team_id: teamId, invite_code: code});
+    }
+    // Cache on team object
+    const t = teams.find(t=>t.id===teamId);
+    if(t) t._shared = code;
+  }
+  // Show overlay with code
+  showInviteOverlay(code);
+}
+
+function showInviteOverlay(code){
+  // Reuse period overlay structure
+  $('ovIcon').textContent='🔗';
+  $('ovTitle').textContent='INBJUDNINGSKOD';
+  $('ovSub').innerHTML='Dela denna kod med en annan ledare så kan de gå med i laget.<br><br>'
+    +'<div class=\"invite-code\" onclick=\"copyCode(\'' + code + '\')\">'+code+'</div>'
+    +'<div class=\"invite-hint\">Tryck på koden för att kopiera</div>';
+  $('ovNextBtn').style.display='none';
+  document.querySelector('#periodOv .btn-secondary').textContent='Stäng';
+  $('periodOv').classList.add('show');
+}
+
+function copyCode(code){
+  navigator.clipboard?.writeText(code).then(()=>{
+    const el = document.querySelector('.invite-code');
+    if(el){ el.textContent='✓ KOPIERAD!'; setTimeout(()=>el.textContent=code, 1500); }
+  });
+}
+
+async function joinTeamByCode(){
+  const code = $('joinCodeInput').value.trim().toUpperCase();
+  const errEl = $('joinErr');
+  errEl.textContent='';
+  if(code.length < 4){ errEl.textContent='Ange en giltig kod.'; return; }
+
+  // Look up the shared team
+  const {data, error} = await supa.from('shared_teams').select('team_id').eq('invite_code', code).single();
+  if(error || !data){ errEl.textContent='Koden hittades inte. Kontrollera och försök igen.'; return; }
+
+  const teamId = data.team_id;
+
+  // Fetch the team data
+  const {data: teamRow} = await supa.from('teams').select('*').eq('id', teamId).single();
+  if(!teamRow){ errEl.textContent='Laget hittades inte.'; return; }
+
+  // Check if user already has this team
+  const existing = teams.find(t=>t.id===teamId || t._sourceId===teamId);
+  if(existing){ errEl.textContent='Du har redan det här laget.'; return; }
+
+  // Save a copy linked to this user, marking it as imported
+  const row = {
+    user_id: currentUser.id,
+    name: teamRow.name,
+    emoji: teamRow.emoji,
+    players: teamRow.players,
+    player_styles: teamRow.player_styles,
+    format: teamRow.format
+  };
+  await supa.from('teams').insert(row);
+  $('joinCodeInput').value='';
+  errEl.style.color='var(--on)';
+  errEl.textContent=`✓ ${teamRow.name} har lagts till!`;
+  setTimeout(()=>{ errEl.textContent=''; errEl.style.color='var(--danger)'; }, 3000);
+  await renderHome();
+}
+
 let teams=loadTeams(), hist=loadHistory();
 let editTeamId=null, selEmoji='⚽';
 const EMOJIS=['⚽','🥅','🏆','⭐','🟢','🔴','🟡','🔵','🟠','💪'];
@@ -607,7 +708,6 @@ function applyFormat(n){
   OFP=f.map(p=>p.id);
 }
 
-const $=id=>document.getElementById(id);
 const showScreen=id=>{ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); };
 const fmtTime=s=>`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
 const sName=n=>{ const p=n.split(' '); return p[0].length<=5?p[0]:p[0].slice(0,4)+'.'; };
@@ -626,8 +726,9 @@ async function renderHome(){
     <div class="team-card" onclick="openPreMatch('${t.id}')">
       <div class="team-icon">${t.emoji||'⚽'}</div>
       <div class="team-info"><div class="team-name">${esc(t.name)}</div>
-        <div class="team-meta">${t.players.length} spelare · ${hist.filter(h=>h.teamId===t.id).length} matcher</div></div>
+        <div class="team-meta">${t.players.length} spelare · ${hist.filter(h=>h.teamId===t.id).length} matcher${t._imported?' · <span class="shared-badge">DELAT</span>':''}</div></div>
       <div class="team-actions" onclick="event.stopPropagation()">
+        <div class="icon-btn" onclick="shareTeam('${t.id}','${t._shared||''}',event)">🔗</div>
         <div class="icon-btn" onclick="openTeamEdit('${t.id}')">✏️</div></div>
     </div>`).join('');
 
@@ -648,6 +749,8 @@ async function renderHome(){
   }).join('');
 }
 $('newTeamBtn').onclick=()=>openTeamEdit(null);
+$('joinBtn').onclick=joinTeamByCode;
+$('joinCodeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') joinTeamByCode(); });
 
 // ── TEAM EDIT ──
 function openTeamEdit(id){
@@ -1153,7 +1256,12 @@ async function saveResult(){
     playtimes:[...mp].sort((a,b)=>b.playtime-a.playtime).map(p=>({name:p.name,seconds:p.playtime}))});
 }
 
-function closeOv(){ $('periodOv').classList.remove('show'); }
+function closeOv(){
+  $('periodOv').classList.remove('show');
+  $('ovNextBtn').style.display='';
+  const secBtn=document.querySelector('#periodOv .btn-secondary');
+  if(secBtn) secBtn.textContent='Vänta lite';
+}
 
 function matchMenu(){ abortMatch(); }
 async function abortMatch(){
