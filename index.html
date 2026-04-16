@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Bytesapp</title>
+<title>Bytesappen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
 
@@ -217,16 +218,57 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .ov-actions{display:flex;flex-direction:column;gap:9px}
 .flash-ov{position:fixed;inset:0;background:rgba(245,197,24,.45);pointer-events:none;opacity:0;z-index:300;transition:opacity .1s}
 .flash-ov.on{opacity:1}
+/* LOGIN */
+.login-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:16px}
+.login-logo{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:#fff;letter-spacing:-2px;text-shadow:0 4px 24px rgba(0,0,0,.4);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center}
+.login-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px}
+.login-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:var(--accent)}
+.login-input::placeholder{color:var(--muted)}
+.login-err{color:var(--danger);font-size:13px;text-align:center;min-height:18px}
+.login-toggle{color:var(--muted);font-size:13px;text-align:center;cursor:pointer;margin-top:4px}
+.login-toggle span{color:var(--accent);text-decoration:underline}
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500;flex-direction:column;gap:12px}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="flash-ov" id="flashOv"></div>
 
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div style="color:var(--muted);font-size:13px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px">LADDAR...</div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="login-screen">
+  <div class="topbar">
+    <div style="flex:1;text-align:center">
+      <div class="topbar-title">BYTESAPPEN</div>
+      <div class="topbar-sub">Byteshanterare</div>
+    </div>
+  </div>
+  <div class="login-wrap">
+    <div class="login-logo">⚽</div>
+    <div class="login-sub" id="loginModeText">Logga in för att komma åt dina lag</div>
+    <div class="login-form">
+      <input class="login-input" id="loginEmail" type="email" placeholder="E-postadress" autocomplete="email">
+      <input class="login-input" id="loginPassword" type="password" placeholder="Lösenord" autocomplete="current-password">
+      <div class="login-err" id="loginErr"></div>
+      <button class="btn-primary" id="loginBtn">LOGGA IN</button>
+      <div class="login-toggle" id="loginToggle">Inget konto? <span onclick="toggleAuthMode()">Skapa konto</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- HOME -->
 <div class="screen active" id="home-screen">
   <div class="topbar">
-    <div><div class="topbar-title">BYTESAPP</div><div class="topbar-sub">Byteshanterare</div></div>
-    <div style="font-size:28px;position:relative">⚽</div>
+    <div><div class="topbar-title">BYTESAPPEN</div><div class="topbar-sub" id="homeUserEmail">Byteshanterare</div></div>
+    <button class="topbar-action" id="logoutBtn" title="Logga ut" style="font-size:13px;font-family:'Barlow Condensed',sans-serif;font-weight:700;width:auto;padding:0 10px">LOGGA UT</button>
   </div>
   <div class="scrollable" style="padding:16px">
     <div style="height:4px"></div>
@@ -422,11 +464,81 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 </div>
 
 <script>
-const SK_TEAMS='sub7v7_teams', SK_HIST='sub7v7_hist';
-const loadTeams=()=>{ try{ return JSON.parse(localStorage.getItem(SK_TEAMS)||'[]'); }catch(e){ return []; } };
-const saveTeams=t=>localStorage.setItem(SK_TEAMS,JSON.stringify(t));
-const loadHistory=()=>{ try{ return JSON.parse(localStorage.getItem(SK_HIST)||'[]'); }catch(e){ return []; } };
-const saveHistory=h=>localStorage.setItem(SK_HIST,JSON.stringify(h));
+// ── SUPABASE ──
+const SUPA_URL='https://dcnrfttxcvbzsmvjfkzl.supabase.co';
+const SUPA_KEY='sb_publishable_CNakOF65hGaWmUA8sXhwlA_LpTo-PkS';
+const supa=supabase.createClient(SUPA_URL, SUPA_KEY);
+let currentUser=null;
+
+// ── AUTH ──
+let authMode='login'; // 'login' | 'signup'
+
+function toggleAuthMode(){
+  authMode=authMode==='login'?'signup':'login';
+  $('loginModeText').textContent=authMode==='login'?'Logga in för att komma åt dina lag':'Skapa ett nytt konto';
+  $('loginBtn').textContent=authMode==='login'?'LOGGA IN':'SKAPA KONTO';
+  $('loginToggle').innerHTML=authMode==='login'?'Inget konto? <span onclick="toggleAuthMode()">Skapa konto</span>':'Har du konto? <span onclick="toggleAuthMode()">Logga in</span>';
+  $('loginErr').textContent='';
+}
+
+$('loginBtn').onclick=async()=>{
+  const email=$('loginEmail').value.trim();
+  const pass=$('loginPassword').value;
+  $('loginErr').textContent='';
+  if(!email||!pass){ $('loginErr').textContent='Fyll i e-post och lösenord.'; return; }
+  $('loginBtn').textContent='...';
+  let err;
+  if(authMode==='signup'){
+    const res=await supa.auth.signUp({email,password:pass});
+    err=res.error;
+    if(!err) { $('loginErr').style.color='var(--on)'; $('loginErr').textContent='Kolla din e-post för bekräftelselänk!'; $('loginBtn').textContent='SKAPA KONTO'; return; }
+  } else {
+    const res=await supa.auth.signInWithPassword({email,password:pass});
+    err=res.error;
+  }
+  $('loginBtn').textContent=authMode==='login'?'LOGGA IN':'SKAPA KONTO';
+  if(err) $('loginErr').textContent=err.message==='Invalid login credentials'?'Fel e-post eller lösenord.':err.message;
+};
+
+$('logoutBtn').onclick=async()=>{
+  await supa.auth.signOut();
+  teams=[]; hist=[];
+  showScreen('login-screen');
+};
+
+// ── CLOUD STORAGE ──
+async function loadTeams(){
+  if(!currentUser) return [];
+  const {data}=await supa.from('teams').select('*').order('created_at');
+  return (data||[]).map(r=>({id:r.id,name:r.name,emoji:r.emoji,players:r.players,playerStyles:r.player_styles,format:r.format}));
+}
+
+async function saveTeam_db(teamData){
+  if(!currentUser) return;
+  const row={user_id:currentUser.id,name:teamData.name,emoji:teamData.emoji||'⚽',players:teamData.players,player_styles:teamData.playerStyles||{},format:teamData.format||9};
+  if(teamData.id && !teamData._new){
+    await supa.from('teams').update(row).eq('id',teamData.id).eq('user_id',currentUser.id);
+  } else {
+    const {data}=await supa.from('teams').insert(row).select().single();
+    if(data) teamData.id=data.id;
+  }
+}
+
+async function deleteTeam_db(id){
+  if(!currentUser) return;
+  await supa.from('teams').delete().eq('id',id).eq('user_id',currentUser.id);
+}
+
+async function loadHistory(){
+  if(!currentUser) return [];
+  const {data}=await supa.from('match_history').select('*').order('created_at',{ascending:false}).limit(30);
+  return (data||[]).map(r=>({id:r.id,teamId:r.team_id,date:r.date,playtimes:r.playtimes}));
+}
+
+async function saveHistory_db(entry){
+  if(!currentUser) return;
+  await supa.from('match_history').insert({user_id:currentUser.id,team_id:entry.teamId,date:entry.date,playtimes:entry.playtimes});
+}
 
 let teams=loadTeams(), hist=loadHistory();
 let editTeamId=null, selEmoji='⚽';
@@ -505,8 +617,9 @@ const flash=()=>{ const e=$('flashOv'); e.classList.add('on'); if(navigator.vibr
 const bigFlash=()=>{ const e=$('flashOv'); e.classList.add('on'); if(navigator.vibrate)navigator.vibrate([250,80,250,80,250]); setTimeout(()=>e.classList.remove('on'),500); };
 
 // ── HOME ──
-function renderHome(){
-  teams=loadTeams(); hist=loadHistory();
+async function renderHome(){
+  teams=await loadTeams(); hist=await loadHistory();
+  if(currentUser) $('homeUserEmail').textContent=currentUser.email;
   const g=$('teamGrid');
   if(!teams.length){ g.innerHTML='<div style="color:var(--muted);font-size:13px;padding:4px 0 8px">Inga lag ännu. Skapa ditt första!</div>'; }
   else g.innerHTML=teams.map(t=>`
@@ -581,7 +694,7 @@ function setTeamFormat(el){
 }
 function renum(){ document.querySelectorAll('#teamPlayerList .player-num').forEach((e,i)=>e.textContent=i+1); }
 $('addPlayerBtn').onclick=()=>addPRow('');
-function saveTeam(){
+async function saveTeam(){
   const name=$('teamNameInput').value.trim();
   if(!name){ alert('Ange ett lagnamn!'); return; }
   const players=[...document.querySelectorAll('#teamPlayerList input')].map(i=>i.value.trim()).filter(Boolean);
@@ -593,15 +706,14 @@ function saveTeam(){
     if(nm) playerStyles[nm]=row.dataset.style||'neutral';
   });
   const selFmt=parseInt(document.querySelector('#teamCfgFormat .cfg-opt.selected')?.dataset.val||9);
-  teams=loadTeams();
-  if(editTeamId){ const i=teams.findIndex(t=>t.id===editTeamId); if(i>-1){ teams[i].name=name; teams[i].players=players; teams[i].emoji=selEmoji; teams[i].playerStyles=playerStyles; teams[i].format=selFmt; } }
-  else teams.push({id:uid(),name,players,emoji:selEmoji,playerStyles,format:selFmt});
-  saveTeams(teams); renderHome(); showScreen('home-screen');
+  const teamData={id:editTeamId||null,_new:!editTeamId,name,players,emoji:selEmoji,playerStyles,format:selFmt};
+  await saveTeam_db(teamData);
+  await renderHome(); showScreen('home-screen');
 }
 $('teamSaveBtn').onclick=saveTeam;
 $('teamSaveBtn2').onclick=saveTeam;
 $('teamBackBtn').onclick=()=>showScreen('home-screen');
-$('deleteTeamBtn').onclick=()=>{ if(!confirm('Ta bort laget?')) return; saveTeams(loadTeams().filter(t=>t.id!==editTeamId)); renderHome(); showScreen('home-screen'); };
+$('deleteTeamBtn').onclick=async()=>{ if(!confirm('Ta bort laget?')) return; await deleteTeam_db(editTeamId); await renderHome(); showScreen('home-screen'); };
 
 // ── PRE-MATCH ──
 let keeperEl=null, pressTimer=null;
@@ -1009,7 +1121,7 @@ function periodEnd(){
   bigFlash();
   if(period>=totalPeriods){
     $('ovIcon').textContent='🏆'; $('ovTitle').textContent='MATCH SLUT!'; $('ovSub').textContent='Bra kämpat! Speltid sparad.';
-    $('ovNextBtn').textContent='📊 SE SPELTID'; $('ovNextBtn').onclick=()=>{ closeOv(); showTab('stats'); saveResult(); };
+    $('ovNextBtn').textContent='📊 SE SPELTID'; $('ovNextBtn').onclick=async()=>{ closeOv(); showTab('stats'); await saveResult(); };
   } else {
     $('ovIcon').textContent='⏱'; $('ovTitle').textContent=`PERIOD ${period} SLUT`;
     $('ovSub').textContent=`Drick vatten! ${period===1?'Halvtid!':'Sista perioden!'}`;
@@ -1036,27 +1148,24 @@ function nextPeriod(){
   running=false; $('ppBtn').textContent='▶'; toggleTimer();
 }
 
-function saveResult(){
-  const h=loadHistory();
-  h.push({id:uid(),teamId:matchTeamId,date:new Date().toLocaleDateString('sv-SE'),
+async function saveResult(){
+  await saveHistory_db({teamId:matchTeamId,date:new Date().toLocaleDateString('sv-SE'),
     playtimes:[...mp].sort((a,b)=>b.playtime-a.playtime).map(p=>({name:p.name,seconds:p.playtime}))});
-  if(h.length>30) h.splice(0,h.length-30);
-  saveHistory(h);
 }
 
 function closeOv(){ $('periodOv').classList.remove('show'); }
 
 function matchMenu(){ abortMatch(); }
-function abortMatch(){
+async function abortMatch(){
   const was=running; if(was) toggleTimer();
   $('abortOvSub').textContent=`Period ${period} av ${totalPeriods} · ${fmtTime(elapsed)} spelad. Speltid sparas.`;
   $('abortOv').classList.add('show');
-  $('abortConfirmBtn').onclick=()=>{
+  $('abortConfirmBtn').onclick=async()=>{
     clearInterval(tInt); running=false;
     $('pitchWrap')?.classList.remove('live');
     $('liveDot').className='live-dot off';
     $('abortOv').classList.remove('show');
-    saveResult(); renderHome(); showScreen('home-screen');
+    await saveResult(); await renderHome(); showScreen('home-screen');
   };
 }
 function closeAbortOv(){
@@ -1108,9 +1217,39 @@ function showTab(id){
   if(id==='stats') renderStats(); if(id==='bench') renderBench(); if(id==='log') renderLog();
 }
 
-// Inga förinlagda lag – skapa ditt eget från startsidan.
+// ── INIT ──
+async function initApp(){
+  try {
+    // Get current session immediately (don't wait for event)
+    const { data: { session } } = await supa.auth.getSession();
+    $('loadingScreen').style.display='none';
+    if(session?.user){
+      currentUser=session.user;
+      await renderHome();
+      showScreen('home-screen');
+    } else {
+      showScreen('login-screen');
+    }
+  } catch(e) {
+    $('loadingScreen').style.display='none';
+    showScreen('login-screen');
+  }
 
-renderHome();
+  // Also listen for auth changes (login/logout)
+  supa.auth.onAuthStateChange(async(event, session)=>{
+    if(event==='SIGNED_IN' && session?.user){
+      currentUser=session.user;
+      await renderHome();
+      showScreen('home-screen');
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null;
+      teams=[]; hist=[];
+      showScreen('login-screen');
+    }
+  });
+}
+
+initApp();
 </script>
 </body>
 </html>
