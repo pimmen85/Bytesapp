@@ -537,7 +537,8 @@ async function saveTeam_db(teamData){
   if(!currentUser) throw new Error('Inte inloggad');
   const row={user_id:currentUser.id,name:teamData.name,emoji:teamData.emoji||'⚽',players:teamData.players,player_styles:teamData.playerStyles||{},format:teamData.format||9};
   if(teamData.id && !teamData._new){
-    const {error}=await supa.from('teams').update(row).eq('id',teamData.id).eq('user_id',currentUser.id);
+    const {user_id, ...updateRow} = row; // don't send user_id in update
+    const {error}=await supa.from('teams').update(updateRow).eq('id',teamData.id).eq('user_id',currentUser.id);
     if(error) throw new Error(error.message);
   } else {
     const {data,error}=await supa.from('teams').insert(row).select().single();
@@ -818,11 +819,10 @@ async function saveTeam(){
   const selFmt=parseInt(document.querySelector('#teamCfgFormat .cfg-opt.selected')?.dataset.val||9);
   const teamData={id:editTeamId||null,_new:!editTeamId,name,players,emoji:selEmoji,playerStyles,format:selFmt};
 
-  // Show loading state
-  const btn=$('teamSaveBtn2');
-  const origText=btn.textContent;
-  btn.textContent='SPARAR...';
-  btn.disabled=true;
+  // Show loading state on both save buttons
+  const btn1=$('teamSaveBtn'); const btn2=$('teamSaveBtn2');
+  btn1.textContent='...'; btn1.disabled=true;
+  btn2.textContent='SPARAR...'; btn2.disabled=true;
 
   try {
     await saveTeam_db(teamData);
@@ -830,8 +830,8 @@ async function saveTeam(){
     showScreen('home-screen');
   } catch(e) {
     alert('Kunde inte spara laget: ' + e.message);
-    btn.textContent=origText;
-    btn.disabled=false;
+    btn1.textContent='SPARA'; btn1.disabled=false;
+    btn2.textContent='SPARA LAG'; btn2.disabled=false;
   }
 }
 $('teamSaveBtn').onclick=saveTeam;
