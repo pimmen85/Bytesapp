@@ -539,14 +539,35 @@ async function loadTeams(){
 
 async function saveTeam_db(teamData){
   if(!currentUser) throw new Error('Inte inloggad');
-  const row={user_id:currentUser.id,name:teamData.name,emoji:teamData.emoji||'⚽',players:teamData.players,player_styles:teamData.playerStyles||{},format:teamData.format||9};
+  // Ensure players is a clean array of strings
+  const players = teamData.players.map(p=>String(p).trim()).filter(Boolean);
+  // Ensure playerStyles is a plain object
+  const player_styles = {};
+  players.forEach(p=>{ player_styles[p] = teamData.playerStyles?.[p] || 'neutral'; });
+
+  const row={
+    user_id: currentUser.id,
+    name: teamData.name,
+    emoji: teamData.emoji || '⚽',
+    players: players,
+    player_styles: player_styles,
+    format: teamData.format || 9
+  };
+
+  console.log('Saving team:', row);
+
   if(teamData.id && !teamData._new){
-    const {user_id, ...updateRow} = row; // don't send user_id in update
-    const {error}=await supa.from('teams').update(updateRow).eq('id',teamData.id).eq('user_id',currentUser.id);
-    if(error) throw new Error(error.message);
+    const {error}=await supa.from('teams').update({
+      name: row.name,
+      emoji: row.emoji,
+      players: row.players,
+      player_styles: row.player_styles,
+      format: row.format
+    }).eq('id', teamData.id).eq('user_id', currentUser.id);
+    if(error){ console.error('Update error:', error); throw new Error(error.message); }
   } else {
     const {data,error}=await supa.from('teams').insert(row).select().single();
-    if(error) throw new Error(error.message);
+    if(error){ console.error('Insert error:', error); throw new Error(error.message); }
     if(data) teamData.id=data.id;
   }
 }
@@ -835,6 +856,9 @@ async function saveTeam(){
     await saveTeam_db(teamData);
     await renderHome();
     showScreen('home-screen');
+    // Reset buttons after successful save
+    $('teamSaveBtn').textContent='SPARA'; $('teamSaveBtn').disabled=false;
+    $('teamSaveBtn2').textContent='SPARA LAG'; $('teamSaveBtn2').disabled=false;
   } catch(e) {
     alert('Kunde inte spara laget: ' + e.message);
     btn1.textContent='SPARA'; btn1.disabled=false;
@@ -1414,9 +1438,10 @@ async function initApp(){
     showScreen('login-screen');
   }
 
-  // Also listen for auth changes (login/logout)
+  // Only listen for actual login/logout – not token refresh
   supa.auth.onAuthStateChange(async(event, session)=>{
-    if(event==='SIGNED_IN' && session?.user){
+    if(event==='SIGNED_IN' && !currentUser){
+      // Only navigate on first login, not on token refresh
       currentUser=session.user;
       await renderHome();
       showScreen('home-screen');
