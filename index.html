@@ -27,8 +27,8 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 
 .topbar{background:var(--grass);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;overflow:hidden}
 .topbar::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 56px,rgba(255,255,255,.07) 56px,rgba(255,255,255,.07) 58px);pointer-events:none}
-.topbar-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;position:relative;line-height:1}
-.topbar-sub{font-size:11px;color:rgba(255,255,255,.55);font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;position:relative}
+.topbar-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;position:relative;line-height:1;user-select:none;-webkit-user-select:none;pointer-events:none}
+.topbar-sub{font-size:11px;color:rgba(255,255,255,.55);font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;position:relative;user-select:none;-webkit-user-select:none;pointer-events:none}
 .topbar-action{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:8px;color:#fff;font-size:18px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s}
 .topbar-action:active{background:rgba(255,255,255,.25);transform:scale(.95)}
 .scrollable{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:24px}
@@ -42,8 +42,8 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .team-card:active::before{opacity:1}
 .team-icon{width:44px;height:44px;background:var(--grass);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .team-info{flex:1;min-width:0}
-.team-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.team-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.team-name{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-meta{font-size:14px;color:var(--muted);margin-top:2px}
 .team-actions{display:flex;gap:6px}
 .icon-btn{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:15px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .icon-btn:active{background:rgba(255,255,255,.15);color:var(--text)}
@@ -54,7 +54,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .history-card-team{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px}
 .history-card-date{font-size:11px;color:var(--muted)}
 .history-mini-bars{display:flex;flex-direction:column;gap:4px}
-.history-mini-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.history-mini-row{display:flex;align-items:center;gap:8px;font-size:14px}
 .history-mini-name{color:var(--muted);min-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-mini-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
 .history-mini-bar{height:100%;background:var(--on);border-radius:2px}
@@ -62,7 +62,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 
 .player-row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:11px 13px;border:1px solid var(--border);margin-bottom:8px}
 .player-num{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:var(--muted);min-width:20px;text-align:center}
-.player-row input{flex:1;background:transparent;border:none;color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;font-weight:500;outline:none;min-width:0}
+.player-row input{flex:1;background:transparent;border:none;color:var(--text);font-family:'Barlow',sans-serif;font-size:18px;font-weight:500;outline:none;min-width:0}
 .player-row input::placeholder{color:var(--muted)}
 .rm-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 2px;line-height:1}
 .rm-btn:active{color:var(--danger)}
@@ -83,7 +83,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .emoji-opt.selected{border-color:var(--accent);background:rgba(245,197,24,.12)}
 
 /* PRE-MATCH */
-.keeper-hint{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);border-radius:10px;padding:10px 13px;margin-bottom:10px;font-size:12px;color:rgba(245,197,24,.9);line-height:1.6}
+.keeper-hint{background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);border-radius:10px;padding:10px 13px;margin-bottom:10px;font-size:14px;color:rgba(245,197,24,.9);line-height:1.6}
 .keeper-status{font-weight:700;margin-top:4px;font-size:13px;transition:color .3s}
 .count-bar{background:var(--card);border-radius:var(--r);padding:11px 14px;margin-bottom:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .count-label{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--muted)}
@@ -96,7 +96,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .prematch-toggle{width:36px;height:36px;border-radius:50%;border:2px solid var(--muted);background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;color:transparent;transition:all .2s;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .prematch-player.active .prematch-toggle{background:var(--on);border-color:var(--on);color:#111}
 .prematch-player.keeper .prematch-toggle{background:var(--keeper);border-color:var(--keeper);color:#111;font-size:18px}
-.prematch-player-name{flex:1;font-size:15px;font-weight:600;pointer-events:none;user-select:none}
+.prematch-player-name{flex:1;font-size:17px;font-weight:600;pointer-events:none;user-select:none}
 .keeper-toggle-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .keeper-toggle-btn.is-keeper{background:rgba(245,197,24,.18);border-color:var(--accent);color:var(--accent)}
 .ptag{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:4px}
@@ -118,7 +118,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .cfg-row:last-child{margin-bottom:0}
 .cfg-label{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted);flex:1}
 .cfg-opts{display:flex;gap:6px}
-.cfg-opt{padding:5px 10px;background:var(--card2);border:2px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s}
+.cfg-opt{padding:8px 14px;background:var(--card2);border:2px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;cursor:pointer;transition:all .15s}
 .cfg-opt.selected{border-color:var(--accent);background:rgba(245,197,24,.12);color:var(--accent)}
 .sub-count-picker{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;border:1px solid var(--border)}
 .sub-count-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:block}
@@ -197,16 +197,16 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .bench-wrap,.stats-wrap{margin:0 10px 8px;background:var(--card);border-radius:var(--r);padding:12px;border:1px solid var(--border);flex:1;overflow-y:auto;min-height:0}
 .bench-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
 .bench-list{display:flex;flex-wrap:wrap;gap:8px}
-.bench-chip{background:var(--card2);border-radius:8px;padding:7px 11px;font-size:13px;font-weight:600;color:#94a3b8;border:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.bench-chip{background:var(--card2);border-radius:8px;padding:7px 11px;font-size:15px;font-weight:600;color:#94a3b8;border:1px solid var(--border);display:flex;align-items:center;gap:6px}
 .bench-t{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:4px}
 .stat-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
 .stat-row:last-child{border-bottom:none}
-.stat-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-name{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat-bar-wrap{flex:2;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
 .stat-bar{height:100%;border-radius:3px;transition:width 1s ease}
 .stat-time{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--muted);min-width:34px;text-align:right}
 .log-wrap{padding:0 10px 8px;display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto;min-height:0}
-.log-item{background:var(--card);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted);border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.log-item{background:var(--card);border-radius:8px;padding:8px 12px;font-size:14px;color:var(--muted);border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
 .log-t{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--accent);min-width:46px;flex-shrink:0}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
 .overlay.show{display:flex}
@@ -234,7 +234,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .login-logo{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:#fff;letter-spacing:-2px;text-shadow:0 4px 24px rgba(0,0,0,.4);margin-bottom:4px}
 .login-sub{font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center}
 .login-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px}
-.login-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;outline:none;transition:border-color .2s}
+.login-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;color:var(--text);font-family:'Barlow',sans-serif;font-size:18px;outline:none;transition:border-color .2s}
 .login-input:focus{border-color:var(--accent)}
 .login-input::placeholder{color:var(--muted)}
 .login-err{color:var(--danger);font-size:13px;text-align:center;min-height:18px}
@@ -303,7 +303,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 <div class="screen" id="team-screen">
   <div class="topbar">
     <button class="topbar-action" id="teamBackBtn">←</button>
-    <div style="flex:1;text-align:center"><div class="topbar-title" id="teamScreenTitle">Nytt lag</div><div class="topbar-sub">Redigera spelare</div></div>
+    <div style="flex:1;text-align:center"><div class="topbar-title" id="teamScreenTitle">Nytt lag</div><div class="topbar-sub">Redigera lag</div></div>
     <button class="topbar-action" id="teamSaveBtn" style="font-size:13px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;width:auto;padding:0 10px">SPARA</button>
   </div>
   <div class="scrollable" style="padding:16px">
@@ -646,7 +646,7 @@ async function joinTeamByCode(){
 
 let teams=loadTeams(), hist=loadHistory();
 let editTeamId=null, selEmoji='⚽';
-const EMOJIS=['⚽','🥅','🏆','⭐','🟢','🔴','🟡','🔵','🟠','💪'];
+const EMOJIS=['🔴','🔵','🟡','🟢','🟠','🟣','⚫'];
 
 // Match config
 let cfgPeriods=3, cfgMins=20, cfgSubMins=5;
@@ -758,6 +758,9 @@ $('joinCodeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') joinTeam
 // ── TEAM EDIT ──
 function openTeamEdit(id){
   editTeamId=id; const t=id?teams.find(t=>t.id===id):null;
+  // Reset save buttons
+  $('teamSaveBtn').textContent='SPARA'; $('teamSaveBtn').disabled=false;
+  $('teamSaveBtn2').textContent='SPARA LAG'; $('teamSaveBtn2').disabled=false;
   $('teamScreenTitle').textContent=t?t.name:'Nytt lag';
   $('teamNameInput').value=t?t.name:'';
   selEmoji=t?(t.emoji||'⚽'):'⚽';
