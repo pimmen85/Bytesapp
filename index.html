@@ -218,6 +218,14 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .ov-actions{display:flex;flex-direction:column;gap:9px}
 .flash-ov{position:fixed;inset:0;background:rgba(245,197,24,.45);pointer-events:none;opacity:0;z-index:300;transition:opacity .1s}
 .flash-ov.on{opacity:1}
+/* KEEPER PICKER */
+.keeper-picker-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.keeper-pick-row{display:flex;align-items:center;gap:12px;background:var(--card2);border:2px solid var(--border);border-radius:12px;padding:12px 16px;cursor:pointer;transition:all .15s;touch-action:manipulation}
+.keeper-pick-row:active{transform:scale(.97)}
+.keeper-pick-row.selected{border-color:var(--keeper);background:rgba(245,197,24,.12)}
+.keeper-pick-name{font-size:17px;font-weight:600;flex:1}
+.keeper-pick-time{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted)}
+.keeper-pick-badge{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;background:var(--accent);color:#111;padding:2px 8px;border-radius:4px}
 /* INVITE */
 .invite-box{background:var(--card);border-radius:var(--r);padding:12px 14px;border:1px solid var(--border);margin-bottom:8px}
 .invite-code{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:6px;color:var(--accent);text-align:center;padding:8px 0;cursor:pointer;transition:opacity .2s}
@@ -420,6 +428,8 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       </div>
       <div class="sub-controls" id="subControls">
         <button class="sub-ctrl-btn force" id="forceSubBtn">👁 Nästa byte</button>
+        <button class="sub-ctrl-btn delay" id="delaySubBtn">+2 min ⏳</button>
+        <button class="sub-ctrl-btn" id="changeKeeperBtn" style="border-color:rgba(245,197,24,.35);color:var(--keeper)" onclick="changeKeeperNow()">🧤 Byt MV</button>
       </div>
       <div class="nav-tabs">
         <button class="nav-tab active" onclick="showTab('pitch')">Planen</button>
@@ -469,6 +479,20 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     <div class="ov-actions">
       <button class="btn-primary" id="ovNextBtn">▶ NÄSTA PERIOD</button>
       <button class="btn-secondary" onclick="closeOv()">Vänta lite</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEEPER PICKER OVERLAY -->
+<div class="overlay" id="keeperOv">
+  <div class="ov-card" style="max-width:360px">
+    <div class="ov-icon">🧤</div>
+    <div class="ov-title" id="keeperOvTitle">VÄLJ MÅLVAKT</div>
+    <div class="ov-sub" id="keeperOvSub">Period 2 – vem ska stå?</div>
+    <div class="keeper-picker-list" id="keeperPickerList"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" id="keeperOvConfirm" onclick="confirmKeeperPick()">✓ BEKRÄFTA</button>
+      <button class="btn-secondary" id="keeperOvSkip" onclick="skipKeeperPick()">Behåll nuvarande MV</button>
     </div>
   </div>
 </div>
@@ -1271,6 +1295,82 @@ function forceSub(){
 
 
 
+// ── KEEPER PICKER ──
+let keeperOvCallback = null;
+let selectedNewKeeper = null;
+
+function showKeeperPicker(title, sub, callback){
+  keeperOvCallback = callback;
+  selectedNewKeeper = null;
+  $('keeperOvTitle').textContent = title;
+  $('keeperOvSub').textContent = sub;
+
+  const currentKeeper = mp.find(p=>p.isKeeper);
+  // Show all players as options
+  const allPlayers = [...mp].sort((a,b)=>a.name.localeCompare(b.name, 'sv'));
+
+  $('keeperPickerList').innerHTML = allPlayers.map(p=>`
+    <div class="keeper-pick-row${p.isKeeper?' selected':''}"
+      data-name="${esc(p.name)}"
+      onclick="selectKeeperPick(this)">
+      <div class="keeper-pick-name">${esc(p.name)}</div>
+      <div class="keeper-pick-time">${fmtTime(p.playtime)}</div>
+      ${p.isKeeper?'<span class="keeper-pick-badge">Nu MV</span>':''}
+    </div>`).join('');
+
+  // Pre-select current keeper
+  if(currentKeeper){
+    selectedNewKeeper = currentKeeper.name;
+  }
+
+  $('keeperOv').classList.add('show');
+}
+
+function selectKeeperPick(el){
+  document.querySelectorAll('.keeper-pick-row').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedNewKeeper = el.dataset.name;
+}
+
+function applyNewKeeper(name){
+  if(!name) return;
+  // Remove keeper status from all
+  mp.forEach(p=>{
+    p.isKeeper = false;
+    if(p.posKey==='GK'){ p.posKey = null; p.onField = false; }
+  });
+  // Set new keeper
+  const newK = mp.find(p=>p.name===name);
+  if(!newK) return;
+  newK.isKeeper = true;
+  newK.onField = true;
+  newK.posKey = 'GK';
+  // Redistribute outfield
+  const outfield = mp.filter(p=>!p.isKeeper&&p.onField);
+  assignPositionsFairly(outfield, elapsed);
+  renderPitch(); renderBench();
+}
+
+function confirmKeeperPick(){
+  $('keeperOv').classList.remove('show');
+  if(keeperOvCallback) keeperOvCallback(selectedNewKeeper);
+}
+function skipKeeperPick(){
+  $('keeperOv').classList.remove('show');
+  if(keeperOvCallback) keeperOvCallback(null);
+}
+function changeKeeperNow(){
+  const was = running; if(was) toggleTimer();
+  showKeeperPicker(
+    'BYT MÅLVAKT',
+    'Välj ny målvakt för resten av perioden',
+    (name)=>{
+      if(name) applyNewKeeper(name);
+      if(was) toggleTimer();
+    }
+  );
+}
+
 // ── PERIOD END ──
 function periodEnd(){
   bigFlash();
@@ -1280,7 +1380,19 @@ function periodEnd(){
   } else {
     $('ovIcon').textContent='⏱'; $('ovTitle').textContent=`PERIOD ${period} SLUT`;
     $('ovSub').textContent=`Drick vatten! ${period===1?'Halvtid!':'Sista perioden!'}`;
-    $('ovNextBtn').textContent=`▶ STARTA PERIOD ${period+1} av ${totalPeriods}`; $('ovNextBtn').onclick=nextPeriod;
+    $('ovNextBtn').textContent=`▶ STARTA PERIOD ${period+1} av ${totalPeriods}`;
+    $('ovNextBtn').onclick=()=>{
+      closeOv();
+      // Show keeper picker before starting next period
+      showKeeperPicker(
+        `PERIOD ${period+1} – VEM ÅR MV?`,
+        `Välj målvakt för period ${period+1} av ${totalPeriods}`,
+        (name)=>{
+          if(name) applyNewKeeper(name);
+          nextPeriod();
+        }
+      );
+    };
   }
   $('periodOv').classList.add('show');
 }
