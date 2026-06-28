@@ -1,5 +1,8 @@
-// Enkel service worker: cache-first så appen fungerar offline och känns "publicerad".
-const CACHE = 'matchtimern-v1';
+// Service worker:
+//  - HTML/appen: network-first → du får alltid senaste versionen när du är online,
+//    men appen funkar ändå offline (faller tillbaka på senast sparade kopia).
+//  - Övriga resurser (ikon, manifest): cache-first för snabb laddning.
+const CACHE = 'matchtimern-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -20,13 +23,31 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then((cached) =>
-      cached ||
-      fetch(e.request).then((res) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  const isHTML = req.mode === 'navigate' ||
+                 (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTML) {
+    // Network-first: hämta nytt, spara kopia, fall tillbaka på cache vid offline.
+    e.respondWith(
+      fetch(req).then((res) => {
         const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-first för övriga resurser.
+  e.respondWith(
+    caches.match(req).then((cached) =>
+      cached ||
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         return res;
       }).catch(() => cached)
     )
