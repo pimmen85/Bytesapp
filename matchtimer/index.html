@@ -32,7 +32,7 @@
     --danger:#ef4444;
     --r:20px;
     --r-sm:14px;
-    --tap:54px;
+    --tap:56px;
     --safe-t:env(safe-area-inset-top,0px);
     --safe-b:env(safe-area-inset-bottom,0px);
   }
@@ -56,7 +56,7 @@
   .screen.active{display:flex}
 
   /* ---- Topbar ---- */
-  .topbar{display:flex;align-items:center;gap:12px;padding:14px 22px 2px}
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 22px 6px}
   .brand{display:flex;align-items:center;gap:11px}
   .brand-mark{width:34px;height:34px;border-radius:10px;background:var(--surface-2);
     border:1px solid var(--border);display:grid;place-items:center;flex-shrink:0}
@@ -66,12 +66,12 @@
 
   /* ---- Setup ---- */
   .setup-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding:8px 20px 14px;display:flex;flex-direction:column;gap:10px;align-content:start}
-  .lead{color:var(--muted);font-size:13.5px;line-height:1.45;margin:0 2px 2px}
+    padding:14px 20px 16px;display:flex;flex-direction:column;gap:13px;align-content:start}
+  .lead{color:var(--muted);font-size:14.5px;line-height:1.5;margin:2px 2px 6px}
 
   .stepper{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-    padding:12px 16px 13px;transition:border-color .2s}
-  .stepper-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+    padding:16px 16px 18px;transition:border-color .2s}
+  .stepper-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
   .stepper-label{font-size:16px;font-weight:600}
   .stepper-row{display:flex;align-items:center;gap:14px}
   .step-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:16px;
@@ -81,23 +81,23 @@
   .step-btn:active{transform:scale(.92);background:#243a30}
   .step-btn:disabled{opacity:.32;cursor:not-allowed}
   .step-value{flex:1;text-align:center;min-width:0}
-  .step-num{font-size:40px;font-weight:700;line-height:1}
-  .step-unit{font-size:12px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:1.4px}
+  .step-num{font-size:46px;font-weight:700;line-height:1}
+  .step-unit{font-size:13px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:1.4px}
   .stepper.accent-match{box-shadow:inset 0 0 0 1px var(--match-dim)}
   .stepper.accent-sub{box-shadow:inset 0 0 0 1px var(--sub-dim)}
   .accent-match .step-num{color:var(--match)}
   .accent-sub .step-num{color:var(--sub)}
 
-  .summary{display:flex;justify-content:center;gap:8px;padding:2px 2px 0}
+  .summary{display:flex;justify-content:center;gap:8px;padding:6px 2px 2px}
   .sum-item{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
-    background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 6px}
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 6px}
   .sum-val{font-size:clamp(15px,4.6vw,18px);font-weight:700;color:var(--text);
     white-space:nowrap;line-height:1}
   .sum-lbl{font-size:10.5px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;line-height:1}
 
   /* ---- Knappar ---- */
-  .footer{padding:10px 20px calc(12px + var(--safe-b));flex-shrink:0}
-  .btn{width:100%;height:58px;border:none;border-radius:18px;font-size:18px;font-weight:700;
+  .footer{padding:12px 20px calc(14px + var(--safe-b));flex-shrink:0}
+  .btn{width:100%;height:62px;border:none;border-radius:18px;font-size:18px;font-weight:700;
     letter-spacing:.3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
     transition:transform .08s ease, filter .15s, background .2s}
   .btn:active{transform:scale(.985)}
@@ -216,7 +216,7 @@
   </div>
 
   <div class="setup-body">
-    <p class="lead">En klocka för matchtiden och en parallell klocka för spelarbyten.</p>
+    <p class="lead">Ställ in matchen. En klocka räknar matchtiden per period, en parallell klocka påminner om spelarbyten.</p>
 
     <div class="stepper accent-match" id="st-periods">
       <div class="stepper-head">
