@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1411">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Matchtimern">
+<meta name="description" content="Dubbeltimer för matchtid och spelarbyten.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Matchtimern</title>
+<style>
+  /* ---- Designvärden: lugn, tydlig, hög kontrast (mobil + vikbart först) ---- */
+  :root{
+    --bg:#0b1411;
+    --bg-grad:radial-gradient(120% 80% at 50% -10%, #11201a 0%, #0b1411 60%);
+    --surface:#14201a;
+    --surface-2:#1b2a22;
+    --border:rgba(255,255,255,.07);
+    --border-strong:rgba(255,255,255,.14);
+    --text:#f1f5f3;
+    --muted:#8aa093;
+    --match:#34d399;     /* matchtid */
+    --match-dim:rgba(52,211,153,.18);
+    --sub:#fbbf24;       /* byten */
+    --sub-dim:rgba(251,191,36,.18);
+    --danger:#ef4444;
+    --r:20px;
+    --r-sm:14px;
+    --tap:56px;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);
+    background-image:var(--bg-grad);
+    color:var(--text);
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    overscroll-behavior:none;
+  }
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:.5px}
+
+  /* ---- Skärmar ---- */
+  .screen{position:fixed;inset:0;display:none;flex-direction:column;
+    padding-top:var(--safe-t);padding-bottom:var(--safe-b)}
+  .screen.active{display:flex}
+
+  /* ---- Topbar ---- */
+  .topbar{display:flex;align-items:center;gap:12px;padding:18px 22px 6px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand-mark{width:34px;height:34px;border-radius:10px;background:var(--surface-2);
+    border:1px solid var(--border);display:grid;place-items:center;flex-shrink:0}
+  .brand-mark svg{width:20px;height:20px}
+  .brand-title{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
+  .brand-sub{font-size:11px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-top:3px}
+
+  /* ---- Setup ---- */
+  .setup-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:14px 20px 24px;display:flex;flex-direction:column;gap:14px;align-content:start}
+  .lead{color:var(--muted);font-size:14.5px;line-height:1.5;margin:2px 2px 6px}
+
+  .stepper{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:16px 16px 18px;transition:border-color .2s}
+  .stepper-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .stepper-label{font-size:16px;font-weight:600}
+  .stepper-hint{font-size:12.5px;color:var(--muted);text-align:right;max-width:48%}
+  .stepper-row{display:flex;align-items:center;gap:14px}
+  .step-btn{flex-shrink:0;width:var(--tap);height:var(--tap);border-radius:16px;
+    border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text);
+    font-size:30px;font-weight:500;line-height:1;display:grid;place-items:center;cursor:pointer;
+    transition:transform .08s ease, background .15s, opacity .15s}
+  .step-btn:active{transform:scale(.92);background:#243a30}
+  .step-btn:disabled{opacity:.32;cursor:not-allowed}
+  .step-value{flex:1;text-align:center;min-width:0}
+  .step-num{font-size:46px;font-weight:700;line-height:1}
+  .step-unit{font-size:13px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:1.4px}
+  .stepper.accent-match{box-shadow:inset 0 0 0 1px var(--match-dim)}
+  .stepper.accent-sub{box-shadow:inset 0 0 0 1px var(--sub-dim)}
+  .accent-match .step-num{color:var(--match)}
+  .accent-sub .step-num{color:var(--sub)}
+
+  .summary{display:flex;align-items:center;gap:10px;justify-content:center;
+    color:var(--muted);font-size:13.5px;text-align:center;padding:2px 6px;line-height:1.5}
+  .summary b{color:var(--text);font-weight:600}
+
+  /* ---- Knappar ---- */
+  .footer{padding:12px 20px calc(14px + var(--safe-b));flex-shrink:0}
+  .btn{width:100%;height:62px;border:none;border-radius:18px;font-size:18px;font-weight:700;
+    letter-spacing:.3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:transform .08s ease, filter .15s, background .2s}
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:var(--match);color:#062018}
+  .btn-primary:active{filter:brightness(.94)}
+  .btn-amber{background:var(--sub);color:#241a00}
+  .btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(239,68,68,.4);height:54px;font-size:16px}
+  .btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border-strong)}
+  .btn svg{width:22px;height:22px}
+
+  /* ---- Timerskärm ---- */
+  .timer-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 4px}
+  .period-pill{display:flex;align-items:center;gap:9px;background:var(--surface);
+    border:1px solid var(--border);border-radius:999px;padding:8px 15px}
+  .period-pill .lbl{font-size:11px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
+  .period-pill .val{font-size:15px;font-weight:700}
+  .dots{display:flex;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-strong)}
+  .dot.done{background:var(--match);border-color:var(--match)}
+  .dot.current{background:var(--match);border-color:var(--match);box-shadow:0 0 0 4px var(--match-dim)}
+
+  .arena{flex:1;display:flex;flex-direction:column;gap:16px;padding:10px 18px;
+    align-items:stretch;justify-content:center;min-height:0;overflow:hidden}
+
+  .tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;flex:1;min-height:0}
+  .tcard-label{font-size:11.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .tcard.match .tcard-label{color:var(--match)}
+  .tcard.sub .tcard-label{color:var(--sub)}
+
+  .ring-wrap{position:relative;width:min(62vw,230px);aspect-ratio:1;max-height:34vh;flex-shrink:1}
+  .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring-bg{fill:none;stroke:var(--surface-2);stroke-width:13}
+  .ring-fg{fill:none;stroke-width:13;stroke-linecap:round;
+    transition:stroke-dashoffset .25s linear}
+  .match .ring-fg{stroke:var(--match)}
+  .sub .ring-fg{stroke:var(--sub)}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;gap:2px}
+  .big-time{font-size:clamp(38px,9vw,60px);font-weight:700;line-height:1}
+  .sub-time{font-size:clamp(34px,8vw,54px);font-weight:700;line-height:1}
+  .small-time{font-size:14px;color:var(--muted)}
+  .tcard.match.flash{animation:flashMatch .9s ease}
+  .tcard.sub.flash{animation:flashSub .9s ease}
+  @keyframes flashMatch{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--match) inset, 0 0 36px var(--match-dim)}}
+  @keyframes flashSub{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--sub) inset, 0 0 36px var(--sub-dim)}}
+
+  /* Kontroller längst ned på timerskärmen */
+  .controls{padding:6px 18px calc(16px + var(--safe-b));display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+  .controls-row{display:flex;gap:10px}
+  .controls-row .btn{flex:1}
+  .btn-icon{width:62px;flex:0 0 62px !important;background:var(--surface-2);
+    border:1px solid var(--border-strong);color:var(--text)}
+
+  /* Toast / banner */
+  .toast{position:fixed;left:50%;top:calc(var(--safe-t) + 14px);transform:translateX(-50%) translateY(-140%);
+    background:var(--surface-2);border:1px solid var(--border-strong);border-radius:14px;
+    padding:13px 20px;font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:10px;
+    z-index:50;transition:transform .35s cubic-bezier(.2,.9,.3,1.2);max-width:90vw;text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.5)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.sub{border-color:var(--sub);color:var(--sub)}
+  .toast.match{border-color:var(--match);color:var(--match)}
+  .toast .ico{width:22px;height:22px;flex-shrink:0}
+
+  /* Overlay vid paus/slut/paus mellan perioder */
+  .overlay{position:absolute;inset:0;background:rgba(7,15,12,.82);backdrop-filter:blur(7px);
+    -webkit-backdrop-filter:blur(7px);display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;text-align:center;padding:30px;z-index:20}
+  .overlay.show{display:flex}
+  .overlay h2{font-size:30px;font-weight:800;letter-spacing:.3px}
+  .overlay p{color:var(--muted);font-size:15.5px;max-width:300px;line-height:1.5}
+  .overlay .ov-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px;margin-top:14px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.05s !important}
+  }
+
+  /* ---- Responsivt: bred/öppnad Fold 6 → timrar sida vid sida ---- */
+  @media (min-width:620px) and (min-aspect-ratio:3/4){
+    .arena{flex-direction:row;gap:20px;padding:14px 26px}
+    .ring-wrap{width:min(34vw,300px);max-height:52vh}
+    .setup-body{max-width:640px;margin:0 auto;width:100%}
+    .footer{max-width:640px;margin:0 auto;width:100%}
+  }
+  @media (min-width:820px){
+    .setup-body{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+    .lead,.summary,.setup-body .btn{grid-column:1 / -1}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<section id="setupScreen" class="screen active">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="#34d399" stroke-width="2"/><path d="M12 13V8.5" stroke="#f1f5f3" stroke-width="2" stroke-linecap="round"/><rect x="10" y="2.5" width="4" height="2.4" rx="1" fill="#34d399"/></svg>
+      </div>
+      <div>
+        <div class="brand-title">Matchtimern</div>
+        <div class="brand-sub">Period &amp; byten</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setup-body">
+    <p class="lead">Ställ in matchen. En klocka räknar matchtiden per period, en parallell klocka påminner om spelarbyten.</p>
+
+    <div class="stepper accent-match" id="st-periods">
+      <div class="stepper-head">
+        <span class="stepper-label">Antal perioder</span>
+        <span class="stepper-hint">2 = halvlekar</span>
+      </div>
+      <div class="stepper-row">
+        <button class="step-btn" data-act="dec" aria-label="Färre perioder">−</button>
+        <div class="step-value"><div class="step-num tnum" id="v-periods">2</div><div class="step-unit">perioder</div></div>
+        <button class="step-btn" data-act="inc" aria-label="Fler perioder">+</button>
+      </div>
+    </div>
+
+    <div class="stepper accent-match" id="st-minutes">
+      <div class="stepper-head">
+        <span class="stepper-label">Minuter per period</span>
+        <span class="stepper-hint">längd på varje period</span>
+      </div>
+      <div class="stepper-row">
+        <button class="step-btn" data-act="dec" aria-label="Kortare period">−</button>
+        <div class="step-value"><div class="step-num tnum" id="v-minutes">12</div><div class="step-unit">minuter</div></div>
+        <button class="step-btn" data-act="inc" aria-label="Längre period">+</button>
+      </div>
+    </div>
+
+    <div class="stepper accent-sub" id="st-sub">
+      <div class="stepper-head">
+        <span class="stepper-label">Byt spelare var</span>
+        <span class="stepper-hint">parallell bytespåminnelse</span>
+      </div>
+      <div class="stepper-row">
+        <button class="step-btn" data-act="dec" aria-label="Tätare byten">−</button>
+        <div class="step-value"><div class="step-num tnum" id="v-sub">5</div><div class="step-unit">minut</div></div>
+        <button class="step-btn" data-act="inc" aria-label="Glesare byten">+</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <div class="footer">
+    <button class="btn btn-primary" id="startMatchBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>
+      Starta matchen
+    </button>
+  </div>
+</section>
+
+<!-- ============ TIMER ============ -->
+<section id="timerScreen" class="screen">
+  <div class="timer-top">
+    <div class="period-pill">
+      <span class="lbl">Period</span>
+      <span class="val tnum" id="periodVal">1 / 2</span>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div class="arena">
+    <!-- Matchtid -->
+    <div class="tcard match" id="matchCard">
+      <div class="tcard-label">Matchtid</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="86"/>
+          <circle class="ring-fg" id="matchRing" cx="100" cy="100" r="86"/>
+        </svg>
+        <div class="ring-center">
+          <div class="big-time tnum" id="matchTime">00:00</div>
+          <div class="small-time tnum" id="matchRemain">−12:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Byten -->
+    <div class="tcard sub" id="subCard">
+      <div class="tcard-label">Nästa byte</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="86"/>
+          <circle class="ring-fg" id="subRing" cx="100" cy="100" r="86"/>
+        </svg>
+        <div class="ring-center">
+          <div class="sub-time tnum" id="subTime">05:00</div>
+          <div class="small-time tnum" id="subCount">Byte 1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay (paus / paus mellan perioder / slut) -->
+    <div class="overlay" id="overlay">
+      <h2 id="ovTitle">Pausad</h2>
+      <p id="ovText"></p>
+      <div class="ov-actions">
+        <button class="btn btn-primary" id="ovPrimary">Fortsätt</button>
+        <button class="btn btn-ghost" id="ovSecondary">Avsluta</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" id="playPauseBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor" id="ppIcon"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      <span id="ppLabel">Pausa</span>
+    </button>
+    <div class="controls-row">
+      <button class="btn btn-icon" id="resetSubBtn" title="Nollställ bytesklockan" aria-label="Nollställ bytesklockan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+      </button>
+      <button class="btn btn-ghost" id="exitBtn">Avsluta match</button>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"><span class="ico" id="toastIco"></span><span id="toastMsg"></span></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Hjälpare ----------
+  const $ = (id) => document.getElementById(id);
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  const fmt = (sec) => {
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  };
+  const RING_C = 2 * Math.PI * 86;
+  [$('matchRing'), $('subRing')].forEach(r => { r.style.strokeDasharray = RING_C; });
+  const setRing = (el, frac) => { el.style.strokeDashoffset = RING_C * (1 - clamp(frac, 0, 1)); };
+
+  // ---------- Inställningar ----------
+  const LIMITS = { periods: [1, 12], minutes: [1, 60], sub: [1, 30] };
+  const DEFAULTS = { periods: 2, minutes: 12, sub: 5 };
+  let cfg = loadCfg();
+
+  function loadCfg() {
+    try {
+      const s = JSON.parse(localStorage.getItem('matchtimern.cfg'));
+      if (s && s.periods) return {
+        periods: clamp(s.periods, ...LIMITS.periods),
+        minutes: clamp(s.minutes, ...LIMITS.minutes),
+        sub: clamp(s.sub, ...LIMITS.sub),
+      };
+    } catch (e) {}
+    return { ...DEFAULTS };
+  }
+  function saveCfg() { try { localStorage.setItem('matchtimern.cfg', JSON.stringify(cfg)); } catch (e) {} }
+
+  function renderSetup() {
+    $('v-periods').textContent = cfg.periods;
+    $('v-minutes').textContent = cfg.minutes;
+    $('v-sub').textContent = cfg.sub;
+    $('st-sub').querySelector('.step-unit').textContent = cfg.sub === 1 ? 'minut' : 'minuter';
+    const totalMin = cfg.periods * cfg.minutes;
+    $('summary').innerHTML =
+      `Totalt <b>${totalMin} min</b> speltid · <b>${cfg.periods}×${cfg.minutes} min</b> · byte var <b>${cfg.sub} min</b>`;
+    // Inaktivera knappar vid gräns
+    bindLimit('st-periods', cfg.periods, LIMITS.periods);
+    bindLimit('st-minutes', cfg.minutes, LIMITS.minutes);
+    bindLimit('st-sub', cfg.sub, LIMITS.sub);
+  }
+  function bindLimit(id, val, [lo, hi]) {
+    const el = $(id);
+    el.querySelector('[data-act=dec]').disabled = val <= lo;
+    el.querySelector('[data-act=inc]').disabled = val >= hi;
+  }
+
+  // Steppers med håll-in-för-upprepning
+  const stepMap = { 'st-periods': 'periods', 'st-minutes': 'minutes', 'st-sub': 'sub' };
+  Object.keys(stepMap).forEach(id => {
+    $(id).querySelectorAll('.step-btn').forEach(btn => {
+      let timer = null, delay = 480, count = 0;
+      const key = stepMap[id], dir = btn.dataset.act === 'inc' ? 1 : -1;
+      const apply = () => {
+        cfg[key] = clamp(cfg[key] + dir, ...LIMITS[key]);
+        saveCfg(); renderSetup(); haptic(8);
+      };
+      const start = (e) => {
+        e.preventDefault();
+        if (btn.disabled) return;
+        apply(); count = 0;
+        const loop = () => {
+          if (btn.disabled) { stop(); return; }
+          apply(); count++;
+          timer = setTimeout(loop, Math.max(70, delay - count * 60));
+        };
+        timer = setTimeout(loop, delay);
+      };
+      const stop = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      btn.addEventListener('pointerdown', start);
+      btn.addEventListener('pointerup', stop);
+      btn.addEventListener('pointerleave', stop);
+      btn.addEventListener('pointercancel', stop);
+    });
+  });
+
+  // ---------- Matchtillstånd ----------
+  // status: 'idle' | 'running' | 'paused' | 'break' | 'finished'
+  const M = {
+    status: 'idle',
+    periodLen: 0, subLen: 0, periods: 1,
+    period: 1,            // aktuell period (1-baserad)
+    periodElapsed: 0,     // sekunder i aktuell period
+    subElapsed: 0,        // sekunder i pågående bytescykel (egen parallell klocka)
+    subCount: 0,          // antal genomförda byten denna period
+    lastTick: 0,
+  };
+
+  let interval = null, wakeLock = null, audioCtx = null;
+
+  // ---------- Ljud & haptik ----------
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function beep(freq, start, dur, vol = 0.22) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime + start;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+  function haptic(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+  function chimeSub() { ensureAudio(); beep(880, 0, .18); beep(1175, .2, .22); haptic([0, 90, 60, 90]); }
+  function chimePeriod() { ensureAudio(); beep(660, 0, .22); beep(660, .26, .22); beep(990, .52, .34); haptic([0, 140, 80, 140, 80, 200]); }
+
+  // ---------- Wake lock (skärmen tänd) ----------
+  async function acquireWake() {
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  function releaseWake() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && M.status === 'running') acquireWake();
+  });
+
+  // ---------- Toast ----------
+  let toastTimer = null;
+  function toast(msg, kind, icon) {
+    const t = $('toast');
+    t.className = 'toast ' + (kind || '');
+    $('toastMsg').textContent = msg;
+    $('toastIco').innerHTML = icon || '';
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+  const ICO_SUB = '<svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/></svg>';
+  const ICO_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22V4M5 4h11l-2 4 2 4H5"/></svg>';
+
+  // ---------- Skärmbyten ----------
+  function show(screen) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(screen).classList.add('active');
+  }
+
+  // ---------- Starta match ----------
+  function startMatch() {
+    ensureAudio();
+    M.periodLen = cfg.minutes * 60;
+    M.subLen = cfg.sub * 60;
+    M.periods = cfg.periods;
+    M.period = 1;
+    M.periodElapsed = 0;
+    M.subElapsed = 0;
+    M.subCount = 0;
+    buildDots();
+    show('timerScreen');
+    setStatus('running');
+    render();
+  }
+
+  function buildDots() {
+    const d = $('dots'); d.innerHTML = '';
+    const max = Math.min(M.periods, 8);
+    for (let i = 0; i < max; i++) {
+      const el = document.createElement('div');
+      el.className = 'dot';
+      d.appendChild(el);
+    }
+  }
+  function paintDots() {
+    const dots = $('dots').children, max = dots.length;
+    for (let i = 0; i < max; i++) {
+      dots[i].className = 'dot' +
+        (i + 1 < M.period ? ' done' : i + 1 === M.period ? ' current' : '');
+    }
+  }
+
+  // ---------- Status ----------
+  function setStatus(s) {
+    M.status = s;
+    if (s === 'running') {
+      M.lastTick = Date.now();
+      if (!interval) interval = setInterval(tick, 200);
+      acquireWake();
+      hideOverlay();
+      $('ppLabel').textContent = 'Pausa';
+      $('ppIcon').innerHTML = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+    } else {
+      if (interval) { clearInterval(interval); interval = null; }
+      releaseWake();
+      $('ppLabel').textContent = 'Fortsätt';
+      $('ppIcon').innerHTML = '<path d="M7 5v14l12-7z"/>';
+    }
+  }
+
+  // ---------- Tick ----------
+  function tick() {
+    const now = Date.now();
+    let dt = (now - M.lastTick) / 1000;
+    M.lastTick = now;
+    if (M.status !== 'running') return;
+    if (dt < 0) dt = 0;
+    if (dt > 3600) dt = 3600;
+
+    M.periodElapsed += dt;
+    M.subElapsed += dt;
+
+    let periodEnded = false;
+    if (M.periodElapsed >= M.periodLen) { M.periodElapsed = M.periodLen; periodEnded = true; }
+
+    // Bytesklockan är en egen parallell klocka: fyr när cykeln nått sin längd.
+    if (!periodEnded && M.subElapsed >= M.subLen) {
+      while (M.subElapsed >= M.subLen) { M.subElapsed -= M.subLen; M.subCount++; }
+      onSubFire(); // ett larm även om flera cykler hoppats över (t.ex. efter bakgrund)
+    }
+    if (periodEnded) onPeriodEnd();
+
+    render();
+  }
+
+  function onSubFire() {
+    chimeSub();
+    flash('subCard');
+    toast('Dags att byta spelare!', 'sub', ICO_SUB);
+  }
+
+  function onPeriodEnd() {
+    chimePeriod();
+    flash('matchCard');
+    if (M.period < M.periods) {
+      setStatus('break');
+      showOverlay(
+        `Period ${M.period} slut`,
+        `Paus före period ${M.period + 1} av ${M.periods}.`,
+        `Starta period ${M.period + 1}`,
+        () => nextPeriod(),
+        'Avsluta match', confirmExit
+      );
+    } else {
+      setStatus('finished');
+      showOverlay(
+        'Matchen är slut',
+        `${M.periods} perioder × ${cfg.minutes} min spelade.`,
+        'Ny match', () => { show('setupScreen'); hideOverlay(); },
+        'Tillbaka', () => { show('setupScreen'); hideOverlay(); }
+      );
+    }
+  }
+
+  function nextPeriod() {
+    M.period++;
+    M.periodElapsed = 0;
+    M.subElapsed = 0;
+    M.subCount = 0;
+    setStatus('running');
+    render();
+    toast(`Period ${M.period} igång`, 'match', ICO_FLAG);
+  }
+
+  function flash(cardId) {
+    const c = $(cardId);
+    c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    paintDots();
+    $('periodVal').textContent = `${M.period} / ${M.periods}`;
+
+    // Matchtid (räknar upp)
+    const mElapsed = M.periodElapsed, mRemain = M.periodLen - mElapsed;
+    $('matchTime').textContent = fmt(mElapsed);
+    $('matchRemain').textContent = '−' + fmt(mRemain);
+    setRing($('matchRing'), mElapsed / M.periodLen);
+
+    // Bytesklocka (egen parallell klocka, räknar ner till nästa byte)
+    const subRemain = (mRemain <= 0) ? 0 : Math.max(0, M.subLen - M.subElapsed);
+    $('subTime').textContent = fmt(subRemain);
+    $('subCount').textContent = 'Byte ' + (M.subCount + 1);
+    setRing($('subRing'), subRemain / M.subLen);
+  }
+
+  // ---------- Overlay ----------
+  let ovPrimaryFn = null, ovSecondaryFn = null;
+  function showOverlay(title, text, primaryLabel, primaryFn, secondaryLabel, secondaryFn) {
+    $('ovTitle').textContent = title;
+    $('ovText').textContent = text;
+    $('ovPrimary').textContent = primaryLabel;
+    $('ovSecondary').textContent = secondaryLabel;
+    ovPrimaryFn = primaryFn; ovSecondaryFn = secondaryFn;
+    $('overlay').classList.add('show');
+  }
+  function hideOverlay() { $('overlay').classList.remove('show'); }
+  $('ovPrimary').addEventListener('click', () => { ensureAudio(); ovPrimaryFn && ovPrimaryFn(); });
+  $('ovSecondary').addEventListener('click', () => { ovSecondaryFn && ovSecondaryFn(); });
+
+  // ---------- Kontroller ----------
+  $('playPauseBtn').addEventListener('click', () => {
+    ensureAudio();
+    if (M.status === 'running') {
+      setStatus('paused');
+      showOverlay('Pausad', 'Matchklockan står stilla.', 'Fortsätt',
+        () => setStatus('running'), 'Avsluta match', confirmExit);
+    } else if (M.status === 'paused') {
+      setStatus('running');
+    } else if (M.status === 'break') {
+      nextPeriod();
+    }
+  });
+
+  $('resetSubBtn').addEventListener('click', () => {
+    // Nollställ enbart bytesklockan (matchtiden påverkas inte)
+    M.subElapsed = 0;
+    render(); haptic(12);
+    toast('Bytesklockan nollställd', 'sub', ICO_SUB);
+  });
+
+  function confirmExit() {
+    if (confirm('Avsluta matchen och gå tillbaka till inställningarna?')) {
+      setStatus('idle'); hideOverlay(); show('setupScreen');
+    }
+  }
+  $('exitBtn').addEventListener('click', confirmExit);
+  $('startMatchBtn').addEventListener('click', startMatch);
+
+  // ---------- Init ----------
+  renderSetup();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>
