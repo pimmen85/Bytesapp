@@ -107,7 +107,17 @@
   .btn svg{width:22px;height:22px}
 
   /* ---- Timerskärm ---- */
-  .timer-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 4px}
+  .timer-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 4px;position:relative}
+  .paused-badge{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--border-strong);
+    border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:700;letter-spacing:1.6px;
+    text-transform:uppercase;color:var(--text);z-index:5}
+  .paused-badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--text);
+    animation:pausePulse 1.4s ease-in-out infinite}
+  @keyframes pausePulse{0%,100%{opacity:.3;transform:scale(.75)}50%{opacity:1;transform:scale(1.1)}}
+  .is-paused .paused-badge{display:flex}
+  .is-paused .tcard{opacity:.4;transition:opacity .3s}
+  .is-paused .period-pill,.is-paused .dots{opacity:.35}
   .period-pill{display:flex;align-items:center;gap:9px;background:var(--surface);
     border:1px solid var(--border);border-radius:999px;padding:8px 15px}
   .period-pill .lbl{font-size:11px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
@@ -148,8 +158,8 @@
   .controls{padding:6px 18px calc(16px + var(--safe-b));display:flex;flex-direction:column;gap:10px;flex-shrink:0}
   .controls-row{display:flex;gap:10px}
   .controls-row .btn{flex:1}
-  .btn-icon{width:62px;flex:0 0 62px !important;background:var(--surface-2);
-    border:1px solid var(--border-strong);color:var(--text)}
+  .btn-sub{background:var(--surface-2);color:var(--sub);border:1px solid rgba(251,191,36,.45)}
+  .btn-sub:active{background:#2a2410}
 
   /* Toast / banner */
   .toast{position:fixed;left:50%;top:calc(var(--safe-t) + 14px);transform:translateX(-50%) translateY(-140%);
@@ -262,6 +272,7 @@
       <span class="val tnum" id="periodVal">1 / 2</span>
     </div>
     <div class="dots" id="dots"></div>
+    <div class="paused-badge" id="pausedBadge"><span class="pulse"></span>Pausad</div>
   </div>
 
   <div class="arena">
@@ -312,10 +323,11 @@
       <span id="ppLabel">Pausa</span>
     </button>
     <div class="controls-row">
-      <button class="btn btn-icon" id="resetSubBtn" title="Nollställ bytesklockan" aria-label="Nollställ bytesklockan">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+      <button class="btn btn-sub" id="subNowBtn" aria-label="Gör byte nu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M21 3l-7 7"/><path d="M8 21H3v-5"/><path d="M3 21l7-7"/></svg>
+        Byt nu
       </button>
-      <button class="btn btn-ghost" id="exitBtn">Avsluta match</button>
+      <button class="btn btn-ghost" id="exitBtn">Avsluta</button>
     </div>
   </div>
 </section>
@@ -505,6 +517,7 @@
   // ---------- Status ----------
   function setStatus(s) {
     M.status = s;
+    $('timerScreen').classList.toggle('is-paused', s === 'paused');
     if (s === 'running') {
       M.lastTick = Date.now();
       if (!interval) interval = setInterval(tick, 200);
@@ -625,9 +638,7 @@
   $('playPauseBtn').addEventListener('click', () => {
     ensureAudio();
     if (M.status === 'running') {
-      setStatus('paused');
-      showOverlay('Pausad', 'Matchklockan står stilla.', 'Fortsätt',
-        () => setStatus('running'), 'Avsluta match', confirmExit);
+      setStatus('paused');          // lugn pausindikator, ingen ruta
     } else if (M.status === 'paused') {
       setStatus('running');
     } else if (M.status === 'break') {
@@ -635,11 +646,13 @@
     }
   });
 
-  $('resetSubBtn').addEventListener('click', () => {
-    // Nollställ enbart bytesklockan (matchtiden påverkas inte)
+  $('subNowBtn').addEventListener('click', () => {
+    if (M.status !== 'running' && M.status !== 'paused') return;
+    // Byte gjort nu: räkna upp bytet och starta om bytesklockan (matchtiden orörd)
+    M.subCount++;
     M.subElapsed = 0;
     render(); haptic(12);
-    toast('Bytesklockan nollställd', 'sub', ICO_SUB);
+    toast('Byte gjort – ny bytesklocka', 'sub', ICO_SUB);
   });
 
   function confirmExit() {
