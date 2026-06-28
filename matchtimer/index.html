@@ -146,8 +146,7 @@
   .sub .ring-fg{stroke:var(--sub)}
   .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;gap:2px}
-  .big-time{font-size:clamp(38px,9vw,60px);font-weight:700;line-height:1}
-  .sub-time{font-size:clamp(34px,8vw,54px);font-weight:700;line-height:1}
+  .big-time,.sub-time{font-size:clamp(44px,10vw,66px);font-weight:700;line-height:1}
   .small-time{font-size:14px;color:var(--muted)}
   .tcard.match.flash{animation:flashMatch .9s ease}
   .tcard.sub.flash{animation:flashSub .9s ease}
@@ -285,8 +284,8 @@
           <circle class="ring-fg" id="matchRing" cx="100" cy="100" r="86"/>
         </svg>
         <div class="ring-center">
-          <div class="big-time tnum" id="matchTime">00:00</div>
-          <div class="small-time tnum" id="matchRemain">−12:00</div>
+          <div class="big-time tnum" id="matchTime">12:00</div>
+          <div class="small-time tnum" id="matchRemain">spelat 00:00</div>
         </div>
       </div>
     </div>
@@ -449,8 +448,19 @@
     osc.start(t0); osc.stop(t0 + dur + 0.02);
   }
   function haptic(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
-  function chimeSub() { ensureAudio(); beep(880, 0, .18); beep(1175, .2, .22); haptic([0, 90, 60, 90]); }
-  function chimePeriod() { ensureAudio(); beep(660, 0, .22); beep(660, .26, .22); beep(990, .52, .34); haptic([0, 140, 80, 140, 80, 200]); }
+  // Byteslarm: kort, ljus dubbelsignal + vibration
+  function chimeSub() {
+    ensureAudio();
+    beep(880, 0, .18, .26); beep(1175, .22, .26, .28);
+    haptic([0, 120, 70, 120]);
+  }
+  // Periodslutslarm: kraftigare, längre signal + lång vibration
+  function chimePeriod() {
+    ensureAudio();
+    beep(784, 0, .22, .30); beep(784, .26, .22, .30);
+    beep(784, .52, .22, .30); beep(1175, .80, .50, .32);
+    haptic([0, 250, 120, 250, 120, 250, 120, 500]);
+  }
 
   // ---------- Wake lock (skärmen tänd) ----------
   async function acquireWake() {
@@ -607,11 +617,11 @@
     paintDots();
     $('periodVal').textContent = `${M.period} / ${M.periods}`;
 
-    // Matchtid (räknar upp)
-    const mElapsed = M.periodElapsed, mRemain = M.periodLen - mElapsed;
-    $('matchTime').textContent = fmt(mElapsed);
-    $('matchRemain').textContent = '−' + fmt(mRemain);
-    setRing($('matchRing'), mElapsed / M.periodLen);
+    // Matchtid (räknar ner mot noll, precis som bytesklockan)
+    const mElapsed = M.periodElapsed, mRemain = Math.max(0, M.periodLen - mElapsed);
+    $('matchTime').textContent = fmt(mRemain);
+    $('matchRemain').textContent = 'spelat ' + fmt(mElapsed);
+    setRing($('matchRing'), mRemain / M.periodLen);
 
     // Bytesklocka (egen parallell klocka, räknar ner till nästa byte)
     const subRemain = (mRemain <= 0) ? 0 : Math.max(0, M.subLen - M.subElapsed);
