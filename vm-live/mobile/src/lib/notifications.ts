@@ -15,6 +15,8 @@ import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    // shouldShowAlert (äldre SDK) + banner/list (nyare SDK) för bred kompatibilitet
+    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,

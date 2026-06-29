@@ -17,9 +17,16 @@ till App Store och Google Play.
 vm-live/
 ├── RESEARCH.md        ← 17 källor om att bygga en framgångsrik mobilapp 2026 + design-spelbok
 ├── API-RESEARCH.md    ← jämförelse av fotbolls-/VM-API:er + mål-detekteringsstrategi
+├── preview/           ← öppna index.html i valfri webbläsare = se appen direkt (ingen install)
 ├── mobile/            ← Expo/React Native-appen (livescore-UI + notisinställningar)
 └── server/            ← Node-backend som pollar API:t, upptäcker mål och skickar Expo-push
 ```
+
+## 👀 Se appen utan att installera något
+Öppna **[`preview/index.html`](./preview/index.html)** i valfri webbläsare (funkar även på mobilen).
+Det är en interaktiv visuell demo med samma designsystem: live-matchen Sverige–Spanien tickar,
+du kan klicka på matcher, byta flik och se en **mål-notis** dyka upp. Den riktiga appen
+(`mobile/`) skickar skarpa push-notiser till telefonen via `server/`.
 
 ### Appen (`mobile/`)
 - **Matcher**-flik: live/kommande/spelade VM-matcher, live-badge med pulserande minut, följ lag.
