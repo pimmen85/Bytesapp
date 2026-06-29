@@ -82,6 +82,12 @@ MATCH_PROVIDER=api-football API_FOOTBALL_KEY=din_nyckel npm start
 3. Fyll i `API_FOOTBALL_KEY` (eller `FOOTBALL_DATA_TOKEN`) i dashboarden.
 4. Du får en publik URL, t.ex. `https://mal-vm-live-server.onrender.com` → använd den som `pushBackendUrl`.
 
+> ⚠️ **Håll servern vaken.** Renders gratisnivå somnar efter ~15 min utan trafik – då stannar
+> pollningen och du missar mål. Enkel fix: skapa en gratis "uptime"-pingare
+> (https://uptimerobot.com eller https://cron-job.org) som hämtar `https://DIN-SERVER/health`
+> var 10:e minut. Då hålls servern igång och pollar live-matcher hela matchdagen.
+> (Vill du ha det helt vattentätt: kör en betald Render-instans eller en "background worker".)
+
 > Skarp data: skaffa nyckel på https://www.api-football.com (förstaval) eller gratis på
 > https://www.football-data.org. Se [`API-RESEARCH.md`](./API-RESEARCH.md). Utan nyckel kör servern
 > mock-data (en simulerad live-match som målar var ~20:e sekund – perfekt för att testa pushflödet).
