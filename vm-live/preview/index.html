@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0A0B0D" />
+<title>Mål · VM Live 2026 — förhandsvisning</title>
+<style>
+  :root {
+    --bg:#0A0B0D; --bgEl:#121419; --surface:#171A21; --surfaceHi:#1F232C;
+    --border:#262B36; --text:#F4F6FA; --muted:#9AA1AE; --faint:#5E6573;
+    --pitch:#1FE078; --live:#FF3B5C; --liveGlow:rgba(255,59,92,.18);
+    --gold:#FFC83D;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 800px at 50% -10%, #15323f 0%, #0A0B0D 55%);
+    min-height:100vh; color:var(--text);
+    display:flex; flex-direction:column; align-items:center;
+    padding:24px 12px 48px;
+  }
+  .intro { max-width:420px; text-align:center; margin-bottom:18px; }
+  .intro h1 { font-size:20px; margin:0 0 6px; letter-spacing:-.3px; }
+  .intro p { font-size:13px; color:var(--muted); line-height:1.5; margin:4px 0; }
+  .intro .tag { display:inline-block; background:var(--surface); border:1px solid var(--border);
+    color:var(--muted); font-size:11px; padding:4px 10px; border-radius:999px; margin-top:8px; }
+
+  /* Telefon-ram */
+  .phone {
+    width:390px; max-width:100%; height:780px; max-height:88vh;
+    background:var(--bg); border-radius:44px; border:1px solid #2c2f38;
+    box-shadow:0 40px 80px rgba(0,0,0,.6), inset 0 0 0 8px #000;
+    position:relative; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .notch { position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:120px; height:26px; background:#000; border-radius:0 0 16px 16px; z-index:60; }
+  .statusbar { display:flex; justify-content:space-between; align-items:center;
+    padding:14px 26px 6px; font-size:13px; font-weight:600; color:var(--text); }
+
+  /* Push-banner */
+  .pushwrap { position:absolute; top:46px; left:0; right:0; z-index:80;
+    display:flex; flex-direction:column; gap:8px; padding:0 10px; pointer-events:none; }
+  .push {
+    background:rgba(31,35,44,.86); backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,.10); border-radius:18px;
+    padding:11px 14px; display:flex; gap:11px; align-items:flex-start;
+    box-shadow:0 18px 40px rgba(0,0,0,.5);
+    transform:translateY(-140%); opacity:0; transition:all .45s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .push.show { transform:translateY(0); opacity:1; }
+  .push .ic { width:34px; height:34px; border-radius:9px; background:var(--pitch);
+    display:flex; align-items:center; justify-content:center; font-size:19px; flex:0 0 auto; }
+  .push .ic.red { background:var(--live); }
+  .push .ic.app { background:#04130B; }
+  .push .meta { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+  .push .title { font-size:14px; font-weight:800; margin:1px 0 2px; }
+  .push .body { font-size:13px; color:#d7dbe2; }
+
+  /* Skärm-innehåll */
+  .screen { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 90px; }
+  .screen::-webkit-scrollbar { display:none; }
+  .pad { padding:8px 18px 0; }
+
+  .topbar { display:flex; justify-content:space-between; align-items:flex-end; padding:6px 18px 14px; }
+  .topbar h2 { font-size:32px; margin:0; letter-spacing:-.6px; font-weight:800; }
+  .topbar .sub { font-size:13px; color:var(--muted); margin-top:2px; }
+  .topbar .logo { font-size:32px; }
+
+  /* Segmented */
+  .seg { display:flex; gap:4px; background:var(--bgEl); border-radius:999px; padding:4px; margin:0 18px 14px; }
+  .seg button { flex:1; border:0; background:transparent; color:var(--muted); font-size:13px;
+    padding:8px 0; border-radius:999px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .seg button.active { background:var(--surfaceHi); color:var(--text); }
+
+  /* Match card */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:16px; margin:0 18px 12px; box-shadow:0 6px 16px rgba(0,0,0,.35); cursor:pointer;
+    transition:transform .12s, border-color .2s; }
+  .card:active { transform:scale(.985); }
+  .card .chead { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .stage { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.5px; }
+  .statusTime { font-size:13px; color:var(--muted); }
+  .statusFin { font-size:11px; color:var(--faint); text-transform:uppercase; }
+  .livebadge { display:inline-flex; align-items:center; gap:6px; background:var(--liveGlow);
+    color:var(--live); font-size:11px; font-weight:700; letter-spacing:.4px;
+    padding:3px 9px; border-radius:999px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--live); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+  .trow { display:flex; align-items:center; gap:12px; padding:5px 0; }
+  .flag { font-size:22px; width:26px; text-align:center; }
+  .tname { font-size:15px; flex:1; }
+  .tname.bold { font-weight:800; }
+  .tname.dim, .tscore.dim { color:var(--faint); }
+  .tscore { font-size:26px; font-weight:800; min-width:22px; text-align:right;
+    font-variant-numeric:tabular-nums; }
+  .follow { margin-top:12px; font-size:13px; color:var(--muted); background:none; border:0;
+    cursor:pointer; font-family:inherit; padding:0; }
+  .follow.on { color:var(--gold); }
+
+  /* Tabs */
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:78px; background:var(--bgEl);
+    border-top:1px solid var(--border); display:flex; z-index:50; padding-bottom:14px; }
+  .tabbar button { flex:1; background:none; border:0; color:var(--faint); font-size:11px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
+    font-family:inherit; padding-top:10px; }
+  .tabbar button .g { font-size:22px; }
+  .tabbar button.active { color:var(--pitch); }
+
+  /* Detalj-overlay */
+  .overlay { position:absolute; inset:0; background:var(--bg); z-index:70; transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; }
+  .overlay.show { transform:translateY(0); }
+  .ovbar { display:flex; align-items:center; padding:16px 18px; gap:12px; }
+  .ovbar button { background:none; border:0; color:var(--pitch); font-size:15px; cursor:pointer;
+    font-family:inherit; font-weight:600; }
+  .ovcontent { flex:1; overflow-y:auto; padding:0 18px 30px; }
+  .ovcontent::-webkit-scrollbar { display:none; }
+  .scoreboard { display:flex; justify-content:space-between; align-items:flex-start; margin-top:8px; }
+  .sb-team { flex:1; text-align:center; }
+  .sb-team .bigflag { font-size:52px; }
+  .sb-team .nm { font-size:17px; font-weight:700; margin-top:6px; }
+  .sb-score { text-align:center; padding:0 10px; }
+  .sb-score .big { font-size:44px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .venue { text-align:center; font-size:13px; color:var(--muted); margin-top:16px; }
+  .secTitle { font-size:17px; font-weight:700; margin:22px 0 12px; }
+  .timeline { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:14px; }
+  .ev { display:flex; align-items:center; gap:12px; margin:6px 0; }
+  .ev.right { flex-direction:row-reverse; text-align:right; }
+  .ev .min { font-size:13px; color:var(--faint); width:30px; font-variant-numeric:tabular-nums; }
+  .ev .eb { display:flex; gap:8px; align-items:center; flex:1; }
+  .ev.right .eb { flex-direction:row-reverse; }
+  .ev .eic { font-size:18px; }
+  .ev .ep { font-size:15px; }
+  .ev .ep.goal { font-weight:800; color:var(--pitch); }
+  .ev .ed { font-size:12px; color:var(--muted); }
+
+  /* Notiser */
+  .prime { background:var(--surface); border:1px solid var(--border); border-radius:28px;
+    padding:26px 22px; margin:0 18px; text-align:center; }
+  .prime .em { font-size:40px; }
+  .prime h3 { font-size:22px; margin:12px 0 8px; }
+  .prime p { font-size:15px; color:var(--muted); line-height:1.45; margin:0 0 18px; }
+  .prime .btn { background:var(--pitch); color:#04130B; border:0; font-weight:800; font-size:16px;
+    padding:13px 28px; border-radius:999px; cursor:pointer; font-family:inherit; }
+  .seclabel { font-size:11px; color:var(--faint); letter-spacing:.5px; margin:22px 18px 8px; }
+  .group { background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    margin:0 18px; padding:0 16px; }
+  .srow { display:flex; align-items:center; padding:14px 0; }
+  .srow + .srow { border-top:1px solid var(--border); }
+  .srow .l { flex:1; }
+  .srow .lab { font-size:15px; }
+  .srow .hint { font-size:13px; color:var(--muted); margin-top:2px; }
+  .srow.disabled { opacity:.45; }
+  .toggle { width:50px; height:30px; border-radius:999px; background:var(--border); position:relative;
+    cursor:pointer; transition:background .2s; flex:0 0 auto; }
+  .toggle.on { background:var(--pitch); }
+  .toggle .knob { position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+    background:#fff; transition:left .2s; }
+  .toggle.on .knob { left:23px; }
+  .testbtn { margin:22px 18px 0; border:1px solid var(--border); border-radius:999px; background:none;
+    color:var(--muted); padding:13px; width:calc(100% - 36px); cursor:pointer; font-family:inherit; font-size:15px; }
+  .footnote { text-align:center; font-size:12px; color:var(--faint); margin:26px 18px 0; }
+
+  .hint-strip { max-width:420px; font-size:12px; color:var(--faint); text-align:center; margin-top:16px; line-height:1.5; }
+
+  /* Tabeller */
+  .gcard { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:16px; }
+  .gtitle { font-size:17px; font-weight:700; margin-bottom:10px; }
+  table.standings { width:100%; border-collapse:collapse; }
+  table.standings th { font-size:11px; color:var(--faint); font-weight:600; text-transform:uppercase;
+    text-align:center; padding:4px 0 8px; border-bottom:1px solid var(--border); }
+  table.standings th.l { text-align:left; }
+  table.standings td { font-size:14px; padding:7px 0; color:var(--muted); text-align:center; font-variant-numeric:tabular-nums; }
+  table.standings td.team { text-align:left; color:var(--text); display:flex; align-items:center; gap:8px; }
+  table.standings td.pos { width:18px; }
+  table.standings td.pts { color:var(--text); font-weight:800; }
+  table.standings tr.qual td.pos { box-shadow:inset 3px 0 0 var(--pitch); }
+  .legend { font-size:11px; color:var(--faint); margin-top:10px; line-height:1.4; }
+
+  /* Slutspel */
+  .roundT { font-size:11px; color:var(--faint); text-transform:uppercase; margin:18px 0 8px; }
+  .bcell { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:11px; margin-bottom:8px; position:relative; }
+  .bcell.live { border-color:var(--live); }
+  .bside { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .bside .bf { font-size:18px; width:24px; }
+  .bside .bn { flex:1; font-size:15px; }
+  .bside .bs { width:18px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .bside.won .bn, .bside.won .bs { color:var(--pitch); font-weight:800; }
+  .bdiv { height:1px; background:var(--border); margin:2px 0; }
+  .btbd { font-size:13px; color:var(--faint); font-style:italic; }
+  .blive { position:absolute; top:-8px; right:10px; background:var(--live); color:#fff; font-size:9px;
+    font-weight:700; padding:1px 6px; border-radius:999px; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+  <div class="intro">
+    <h1>⚽ Mål · VM Live 2026</h1>
+    <p>Interaktiv förhandsvisning av appen. Klicka på en match, byt flik, och se en
+       <b>mål-notis</b> dyka upp på riktigt – matchen Sverige–Spanien tickar live.</p>
+    <span class="tag">Visuell demo · den riktiga appen är Expo/React Native + push-server</span>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span id="clock">20:45</span><span>VM&nbsp;·&nbsp;📶&nbsp;🔋</span></div>
+    <div class="pushwrap" id="pushwrap"></div>
+
+    <!-- MATCHER -->
+    <div class="screen" id="screen-matcher">
+      <div class="topbar">
+        <div>
+          <h2>VM 2026</h2>
+          <div class="sub" id="liveSub">1 match live just nu</div>
+        </div>
+        <div class="logo">⚽</div>
+      </div>
+      <div class="seg" id="seg">
+        <button data-f="all" class="active">Alla</button>
+        <button data-f="live">Live</button>
+        <button data-f="upcoming">Kommande</button>
+        <button data-f="finished">Spelade</button>
+      </div>
+      <div id="cardlist"></div>
+    </div>
+
+    <!-- NOTISER -->
+    <div class="screen hidden" id="screen-notiser">
+      <div class="topbar"><div><h2>Notiser</h2></div></div>
+      <div id="notif-prime">
+        <div class="prime">
+          <div class="em">⚽🔔</div>
+          <h3>Missa aldrig ett mål</h3>
+          <p>Få en notis i samma sekund som det blir mål, rött kort eller slutsignal i VM.
+             Du väljer själv exakt vad du vill bli notifierad om.</p>
+          <button class="btn" id="enableBtn">Slå på notiser</button>
+        </div>
+      </div>
+      <div id="notif-settings" class="hidden">
+        <div class="seclabel">VAD VILL DU BLI NOTIFIERAD OM?</div>
+        <div class="group" id="toggles"></div>
+        <div class="seclabel">OMFATTNING</div>
+        <div class="group">
+          <div class="srow">
+            <div class="l"><div class="lab">Endast lag jag följer</div>
+              <div class="hint">Annars notiser för alla VM-matcher</div></div>
+            <div class="toggle" data-k="onlyFollowed"><div class="knob"></div></div>
+          </div>
+        </div>
+        <button class="testbtn" id="testBtn">Skicka testnotis</button>
+        <div class="footnote">Datakälla: mock · Mål · VM Live 2026</div>
+      </div>
+    </div>
+
+    <!-- TURNERING -->
+    <div class="screen hidden" id="screen-turnering">
+      <div class="topbar"><div><h2>Turnering</h2></div></div>
+      <div class="seg" id="segT">
+        <button data-t="groups" class="active">Grupper</button>
+        <button data-t="bracket">Slutspel</button>
+      </div>
+      <div id="turneringBody" class="pad"></div>
+    </div>
+
+    <!-- MATCHDETALJ -->
+    <div class="overlay" id="overlay">
+      <div class="ovbar"><button id="closeOv">‹ Tillbaka</button></div>
+      <div class="ovcontent" id="ovcontent"></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabbar">
+      <button data-tab="matcher" class="active"><span class="g">⚽</span>Matcher</button>
+      <button data-tab="turnering"><span class="g">🏆</span>Turnering</button>
+      <button data-tab="notiser"><span class="g">🔔</span>Notiser</button>
+    </div>
+  </div>
+
+  <div class="hint-strip">
+    Tips: öppna den här filen på mobilen för att se den i full storlek. Den riktiga appen
+    skickar push-notiser även när appen är stängd via en liten Node-server (se <code>server/</code>).
+  </div>
+
+<script>
+/* ---- Data (speglar mobile/src/api/mockProvider.ts) ---- */
+const flag = c => {
+  if (c === 'GB-ENG') return '🏴\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}';
+  if (!c || !/^[A-Za-z]{2}$/.test(c.slice(0,2))) return '🏳️';
+  return String.fromCodePoint(...[...c.slice(0,2).toUpperCase()].map(x=>0x1F1E6+x.charCodeAt(0)-65));
+};
+// Mål-script för live-matchen: minut -> händelse
+const liveScript = [
+  {at:12, side:'home', type:'GOAL', player:'Gyökeres', detail:'Skott i nät'},
+  {at:23, side:'away', type:'YELLOW_CARD', player:'Rodri'},
+  {at:34, side:'away', type:'PENALTY_GOAL', player:'Yamal', detail:'Straff'},
+  {at:58, side:'home', type:'GOAL', player:'Isak', detail:'Nick'},
+  {at:71, side:'away', type:'RED_CARD', player:'Le Normand'},
+  {at:83, side:'home', type:'GOAL', player:'Gyökeres', detail:'Kontring'},
+];
+const live = {
+  id:'m1', stage:'Åttondelsfinal', venue:'MetLife Stadium, New Jersey',
+  home:{name:'Sverige', code:'SE'}, away:{name:'Spanien', code:'ES'},
+  minute:36, status:'LIVE'
+};
+const upcoming = [
+  {id:'m2', stage:'Åttondelsfinal', status:'SCHEDULED', kickoff:'21:00',
+   home:{name:'Brasilien',code:'BR'}, away:{name:'Argentina',code:'AR'}, venue:'SoFi Stadium, Los Angeles', events:[]},
+  {id:'m3', stage:'Åttondelsfinal', status:'SCHEDULED', kickoff:'23:00',
+   home:{name:'Frankrike',code:'FR'}, away:{name:'England',code:'GB-ENG'}, venue:'AT&T Stadium, Dallas', events:[]},
+];
+const finished = [
+  {id:'m0', stage:'Åttondelsfinal', status:'FINISHED',
+   home:{name:'Nederländerna',code:'NL'}, away:{name:'USA',code:'US'}, hs:2, as:1, venue:'Mercedes-Benz Stadium, Atlanta',
+   events:[{at:9,side:'home',type:'GOAL',player:'Gakpo'},{at:47,side:'away',type:'GOAL',player:'Pulisic'},{at:81,side:'home',type:'GOAL',player:'Depay'}]},
+];
+
+const EVIC = {GOAL:'⚽',PENALTY_GOAL:'⚽',OWN_GOAL:'🥅',YELLOW_CARD:'🟨',RED_CARD:'🟥',SUBSTITUTION:'🔁',VAR:'📺'};
+const EVLAB = {GOAL:'Mål',PENALTY_GOAL:'Straffmål',YELLOW_CARD:'Gult kort',RED_CARD:'Rött kort'};
+const isGoal = t => t==='GOAL'||t==='PENALTY_GOAL'||t==='OWN_GOAL';
+
+/* ---- Live-state ---- */
+let liveMinute = 36;
+let notifEnabled = false;
+const settings = {goals:true, matchStart:true, fullTime:true, redCards:true, onlyFollowed:false};
+const followed = new Set();
+let currentFilter = 'all';
+
+function liveEvents(){ return liveScript.filter(e=>e.at<=liveMinute); }
+function liveScore(side){
+  return liveEvents().filter(e=>e.side===side && (e.type==='GOAL'||e.type==='PENALTY_GOAL')).length;
+}
+
+/* ---- Render matchlista ---- */
+function matchCardHTML(m, opts){
+  const live = m.status==='LIVE';
+  const fin = m.status==='FINISHED';
+  const sched = m.status==='SCHEDULED';
+  let hs, as;
+  if (m.id==='m1'){ hs=liveScore('home'); as=liveScore('away'); }
+  else { hs = sched? '' : (m.hs ?? 0); as = sched? '' : (m.as ?? 0); }
+  const homeWon = fin && m.hs>m.as, awayWon = fin && m.as>m.hs;
+  const status = live
+    ? `<span class="livebadge"><span class="dot"></span>LIVE · ${liveMinute}'</span>`
+    : fin ? `<span class="statusFin">SLUT</span>`
+    : `<span class="statusTime">${m.kickoff}</span>`;
+  const isFollowed = followed.has(m.id);
+  return `<div class="card" data-id="${m.id}">
+    <div class="chead"><span class="stage">${m.stage}</span>${status}</div>
+    <div class="trow">
+      <span class="flag">${flag(m.home.code)}</span>
+      <span class="tname ${(homeWon||live)?'bold':''} ${awayWon?'dim':''}">${m.home.name}</span>
+      <span class="tscore ${awayWon?'dim':''}">${hs}</span>
+    </div>
+    <div class="trow">
+      <span class="flag">${flag(m.away.code)}</span>
+      <span class="tname ${(awayWon||live)?'bold':''} ${homeWon?'dim':''}">${m.away.name}</span>
+      <span class="tscore ${homeWon?'dim':''}">${as}</span>
+    </div>
+    <button class="follow ${isFollowed?'on':''}" data-follow="${m.id}">${isFollowed?'★ Följer':'☆ Följ'}</button>
+  </div>`;
+}
+function allMatches(){ return [live, ...upcoming, ...finished]; }
+function passesFilter(m){
+  if(currentFilter==='live') return m.status==='LIVE';
+  if(currentFilter==='upcoming') return m.status==='SCHEDULED';
+  if(currentFilter==='finished') return m.status==='FINISHED';
+  return true;
+}
+function renderList(){
+  const list = allMatches().filter(passesFilter);
+  document.getElementById('cardlist').innerHTML =
+    list.map(m=>matchCardHTML(m)).join('') || '<div style="text-align:center;color:var(--muted);padding:40px">Inga matcher här.</div>';
+  document.getElementById('liveSub').textContent = '1 match live just nu';
+  bindCards();
+}
+function bindCards(){
+  document.querySelectorAll('.card').forEach(c=>{
+    c.onclick = e=>{ if(e.target.dataset.follow) return; openDetail(c.dataset.id); };
+  });
+  document.querySelectorAll('[data-follow]').forEach(b=>{
+    b.onclick = e=>{ e.stopPropagation(); const id=b.dataset.follow;
+      followed.has(id)?followed.delete(id):followed.add(id); renderList(); };
+  });
+}
+
+/* ---- Matchdetalj ---- */
+function detailEvents(m){
+  if(m.id==='m1') return liveEvents().slice().reverse();
+  return (m.events||[]).slice().reverse();
+}
+function openDetail(id){
+  const m = allMatches().find(x=>x.id===id);
+  let hs,as;
+  if(id==='m1'){hs=liveScore('home');as=liveScore('away');}
+  else {hs=m.hs??0;as=m.as??0;}
+  const sched=m.status==='SCHEDULED';
+  const evs = detailEvents(m);
+  const status = m.status==='LIVE'
+    ? `<span class="livebadge"><span class="dot"></span>LIVE · ${liveMinute}'</span>`
+    : `<div style="font-size:11px;color:var(--faint);text-transform:uppercase">${m.status==='FINISHED'?'Slutsignal':'Avspark'}</div>`;
+  document.getElementById('ovcontent').innerHTML = `
+    <div class="stage" style="text-align:center;margin-bottom:14px">${m.stage}</div>
+    <div class="scoreboard">
+      <div class="sb-team"><div class="bigflag">${flag(m.home.code)}</div><div class="nm">${m.home.name}</div></div>
+      <div class="sb-score">${sched?`<div class="big" style="font-size:26px;color:var(--muted)">${m.kickoff}</div>`:`<div class="big">${hs}–${as}</div>`}${status}</div>
+      <div class="sb-team"><div class="bigflag">${flag(m.away.code)}</div><div class="nm">${m.away.name}</div></div>
+    </div>
+    <div class="venue">📍 ${m.venue}</div>
+    <div class="secTitle">Tidslinje</div>
+    ${evs.length===0
+      ? `<div style="color:var(--muted);font-size:15px">${sched?'Matchen har inte börjat än. Slå på notiser så missar du inget mål.':'Inga händelser.'}</div>`
+      : `<div class="timeline">${evs.map(e=>{
+          const right = e.side==='away';
+          return `<div class="ev ${right?'right':''}">
+            <span class="min">${e.at}'</span>
+            <div class="eb"><span class="eic">${EVIC[e.type]||'•'}</span>
+              <div><div class="ep ${isGoal(e.type)?'goal':''}">${e.player||EVLAB[e.type]||''}</div>
+              ${e.detail?`<div class="ed">${e.detail}</div>`:''}</div></div>
+          </div>`;
+        }).join('')}</div>`}
+  `;
+  document.getElementById('overlay').classList.add('show');
+}
+document.getElementById('closeOv').onclick = ()=>document.getElementById('overlay').classList.remove('show');
+
+/* ---- Push-banner ---- */
+function showPush(title, body, kind){
+  const w = document.getElementById('pushwrap');
+  const el = document.createElement('div');
+  el.className='push';
+  const icCls = kind==='red'?'ic red':kind==='app'?'ic app':'ic';
+  const icon = kind==='red'?'🟥':kind==='app'?'⚽':'⚽';
+  el.innerHTML = `<div class="${icCls}">${icon}</div>
+    <div style="flex:1"><div class="meta">MÅL · VM LIVE · nu</div>
+    <div class="title">${title}</div><div class="body">${body}</div></div>`;
+  w.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),500); }, 4200);
+}
+function scoreLine(){ return `🇸🇪 Sverige ${liveScore('home')}–${liveScore('away')} Spanien 🇪🇸`; }
+
+/* ---- Tick: matchen går framåt, mål triggar notis ---- */
+function tick(){
+  const prevH=liveScore('home'), prevA=liveScore('away');
+  const prevReds=liveEvents().filter(e=>e.type==='RED_CARD').length;
+  liveMinute++;
+  if(liveMinute>90) liveMinute=90;
+  const newH=liveScore('home'), newA=liveScore('away');
+  const newReds=liveEvents().filter(e=>e.type==='RED_CARD').length;
+
+  if(notifEnabled){
+    if(settings.goals && (newH+newA)>(prevH+prevA)){
+      const g = liveEvents().slice().reverse().find(e=>isGoal(e.type));
+      showPush(`⚽ MÅL — ${g.at}' ${g.player}`, scoreLine());
+    }
+    if(settings.redCards && newReds>prevReds){
+      const r = liveEvents().slice().reverse().find(e=>e.type==='RED_CARD');
+      showPush('🟥 Rött kort', `${r.player} — ${scoreLine()}`, 'red');
+    }
+  }
+  renderList();
+  if(document.getElementById('overlay').classList.contains('show')) openDetail('m1');
+}
+// Snabbtempo i demon: 1 matchminut ≈ 1,1 s, så mål kommer ofta.
+setInterval(tick, 1100);
+
+/* ---- Turnering: data ---- */
+const groups = [
+  {group:'Grupp A', rows:[
+    ['Sverige','SE',3,6,2],['Spanien','ES',3,5,2],['Uruguay','UY',3,4,0],['Ghana','GH',3,1,-6]]},
+  {group:'Grupp B', rows:[
+    ['Brasilien','BR',3,9,7],['Argentina','AR',3,6,3],['Japan','JP',3,3,-2],['Marocko','MA',3,0,-8]]},
+  {group:'Grupp C', rows:[
+    ['Frankrike','FR',3,7,4],['England','GB-ENG',3,7,3],['Nederländerna','NL',3,3,-1],['Senegal','SN',3,0,-6]]},
+  {group:'Grupp D', rows:[
+    ['Portugal','PT',3,7,4],['Tyskland','DE',3,6,2],['USA','US',3,4,0],['Sydkorea','KR',3,0,-6]]},
+];
+const bracket = [
+  {round:'Åttondelsfinal', matches:[
+    {h:['Sverige','SE'],a:['Spanien','ES'],hs:2,as:1,st:'LIVE'},
+    {h:['Nederländerna','NL'],a:['USA','US'],hs:2,as:1,st:'FINISHED'},
+    {h:['Brasilien','BR'],a:['Argentina','AR'],st:'SCHEDULED'},
+    {h:['Frankrike','FR'],a:['England','GB-ENG'],st:'SCHEDULED'},
+  ]},
+  {round:'Kvartsfinal', matches:[
+    {h:['Sverige','SE'],a:['Nederländerna','NL'],st:'SCHEDULED'}, {st:'SCHEDULED'},
+  ]},
+  {round:'Semifinal', matches:[{st:'SCHEDULED'}]},
+  {round:'Final', matches:[{st:'SCHEDULED'}]},
+];
+let tView='groups';
+function renderGroups(){
+  return groups.map(g=>`<div class="gcard"><div class="gtitle">${g.group}</div>
+    <table class="standings"><thead><tr><th></th><th class="l">Lag</th><th>S</th><th>MS</th><th>P</th></tr></thead>
+    <tbody>${g.rows.map((r,i)=>{const[name,code,sp,pts,gd]=r;const q=i<2;
+      return `<tr class="${q?'qual':''}"><td class="pos">${i+1}</td>
+      <td class="team">${flag(code)} ${name}</td><td>${sp}</td>
+      <td>${gd>0?'+'+gd:gd}</td><td class="pts">${pts}</td></tr>`;}).join('')}</tbody></table>
+    <div class="legend">S = spelade · MS = målskillnad · P = poäng · <span style="color:var(--pitch)">grönt</span> = vidare till slutspel</div>
+  </div>`).join('');
+}
+function bside(team,score,won,sched){
+  if(!team) return '';
+  return `<div class="bside ${won?'won':''}"><span class="bf">${flag(team[1])}</span>
+    <span class="bn">${team[0]}</span><span class="bs">${sched||score==null?'–':score}</span></div>`;
+}
+function renderBracket(){
+  return bracket.map(r=>`<div class="roundT">${r.round}</div>
+    ${r.matches.map(m=>{
+      if(!m.h) return `<div class="bcell"><span class="btbd">Inte bestämd än</span></div>`;
+      const live=m.st==='LIVE'; const sched=m.st==='SCHEDULED';
+      const hw=m.st==='FINISHED'&&m.hs>m.as, aw=m.st==='FINISHED'&&m.as>m.hs;
+      return `<div class="bcell ${live?'live':''}">${bside(m.h,m.hs,hw,sched)}<div class="bdiv"></div>${bside(m.a,m.as,aw,sched)}${live?'<span class="blive">LIVE</span>':''}</div>`;
+    }).join('')}`).join('');
+}
+function renderTurnering(){
+  document.getElementById('turneringBody').innerHTML = tView==='groups'?renderGroups():renderBracket();
+}
+document.querySelectorAll('#segT button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#segT button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); tView=b.dataset.t; renderTurnering();};
+});
+
+/* ---- Tabs ---- */
+document.querySelectorAll('.tabbar button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.tabbar button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const tab=b.dataset.tab;
+    document.getElementById('screen-matcher').classList.toggle('hidden', tab!=='matcher');
+    document.getElementById('screen-turnering').classList.toggle('hidden', tab!=='turnering');
+    document.getElementById('screen-notiser').classList.toggle('hidden', tab!=='notiser');
+    if(tab==='turnering') renderTurnering();
+  };
+});
+/* ---- Filter ---- */
+document.querySelectorAll('#seg button').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); currentFilter=b.dataset.f; renderList(); };
+});
+
+/* ---- Notiser ---- */
+const toggleDefs = [
+  {k:'goals', lab:'⚽ Mål'}, {k:'matchStart', lab:'🟢 Avspark'},
+  {k:'fullTime', lab:'🔔 Slutsignal'}, {k:'redCards', lab:'🟥 Röda kort'},
+];
+function renderToggles(){
+  document.getElementById('toggles').innerHTML = toggleDefs.map(t=>`
+    <div class="srow"><div class="l"><div class="lab">${t.lab}</div></div>
+    <div class="toggle ${settings[t.k]?'on':''}" data-k="${t.k}"><div class="knob"></div></div></div>`).join('');
+  bindToggles();
+}
+function bindToggles(){
+  document.querySelectorAll('.toggle').forEach(t=>{
+    t.onclick=()=>{ const k=t.dataset.k; settings[k]=!settings[k]; t.classList.toggle('on', settings[k]); };
+  });
+}
+document.getElementById('enableBtn').onclick=()=>{
+  notifEnabled=true;
+  document.getElementById('notif-prime').classList.add('hidden');
+  document.getElementById('notif-settings').classList.remove('hidden');
+  renderToggles();
+  showPush('🔔 Notiser på', 'Du får nu en notis vid varje mål i VM.', 'app');
+};
+document.getElementById('testBtn').onclick=()=>showPush('⚽ MÅL — 67′ Gyökeres','🇸🇪 Sverige 2–1 Spanien 🇪🇸');
+
+/* ---- Klocka ---- */
+function updClock(){ const d=new Date();
+  document.getElementById('clock').textContent =
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+updClock(); setInterval(updClock, 10000);
+
+renderList();
+</script>
+</body>
+</html>

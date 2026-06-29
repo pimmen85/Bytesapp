@@ -1,0 +1,21 @@
+# Render.com blueprint – deploya push-backenden gratis.
+# 1. Pusha repot till GitHub. 2. På render.com: New > Blueprint > välj repo.
+# 3. Fyll i env-värdena nedan i Render-dashboarden.
+services:
+  - type: web
+    name: mal-vm-live-server
+    runtime: node
+    rootDir: vm-live/server
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: MATCH_PROVIDER
+        value: api-football # eller football-data
+      - key: API_FOOTBALL_KEY
+        sync: false # fyll i i dashboarden (hemlig)
+      - key: FOOTBALL_DATA_TOKEN
+        sync: false
+      - key: LIVE_POLL_MS
+        value: "15000"

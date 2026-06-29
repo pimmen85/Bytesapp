@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Mål · VM Live",
+    "slug": "mal-vm-live",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "malvmlive",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0A0B0D",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.malvmlive.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.malvmlive.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0B0D"
+      },
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#1FE078"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "matchDataProvider": "mock",
+      "apiFootballKey": "",
+      "footballDataToken": "",
+      "pushBackendUrl": ""
+    }
+  }
+}
