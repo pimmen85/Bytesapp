@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+*.orig.*
+
+# Server
+server/devices.json
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+*.log

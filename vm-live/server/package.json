@@ -1,0 +1,18 @@
+{
+  "name": "mal-vm-live-server",
+  "version": "0.1.0",
+  "description": "Backend-poller som upptäcker VM-mål och skickar Expo push-notiser",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
