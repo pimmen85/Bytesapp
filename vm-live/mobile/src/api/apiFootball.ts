@@ -8,11 +8,15 @@
  *   GET /fixtures/events?fixture={id}      – tidslinje
  */
 import type {
+  Bracket,
+  BracketMatch,
+  GroupStanding,
   Match,
   MatchDataProvider,
   MatchEvent,
   MatchEventType,
   MatchStatus,
+  StandingRow,
 } from './types';
 
 const BASE = 'https://v3.football.api-sports.io';
@@ -146,6 +150,77 @@ export class ApiFootballProvider implements MatchDataProvider {
     const match = this.toMatch(f);
     match.events = await this.getEvents(id, match);
     return match;
+  }
+
+  async getStandings(): Promise<GroupStanding[]> {
+    interface AfStandingRow {
+      rank: number;
+      team: { id: number; name: string; logo: string };
+      points: number;
+      goalsDiff: number;
+      group: string;
+      all: {
+        played: number;
+        win: number;
+        draw: number;
+        lose: number;
+        goals: { for: number; against: number };
+      };
+    }
+    const data = await this.get<{
+      response: { league: { standings: AfStandingRow[][] } }[];
+    }>(`/standings?league=${WC_LEAGUE}&season=${WC_SEASON}`);
+    const groups = data.response[0]?.league.standings ?? [];
+    return groups.map((rows): GroupStanding => ({
+      group: rows[0]?.group ?? 'Grupp',
+      rows: rows.map((r): StandingRow => ({
+        team: { id: String(r.team.id), name: r.team.name, crest: r.team.logo },
+        rank: r.rank,
+        played: r.all.played,
+        won: r.all.win,
+        drawn: r.all.draw,
+        lost: r.all.lose,
+        goalsFor: r.all.goals.for,
+        goalsAgainst: r.all.goals.against,
+        goalDiff: r.goalsDiff,
+        points: r.points,
+        qualifies: r.rank <= 2,
+      })),
+    }));
+  }
+
+  async getBracket(): Promise<Bracket> {
+    // API-Football har ingen bracket-endpoint; vi härleder från slutspelsmatcher.
+    const ORDER: { key: string; label: string }[] = [
+      { key: 'round of 32', label: 'Sextondelsfinal' },
+      { key: 'round of 16', label: 'Åttondelsfinal' },
+      { key: 'quarter', label: 'Kvartsfinal' },
+      { key: 'semi', label: 'Semifinal' },
+      { key: '3rd place', label: 'Bronsmatch' },
+      { key: 'final', label: 'Final' },
+    ];
+    const fixtures = await this.getFixtures();
+    const buckets = new Map<string, BracketMatch[]>(ORDER.map((o) => [o.label, []]));
+    for (const m of fixtures) {
+      const stage = (m.stage ?? '').toLowerCase();
+      // Tilldela till FÖRSTA matchande rundan så "quarter-finals" inte även
+      // hamnar under "final".
+      const hit = ORDER.find((o) => stage.includes(o.key));
+      if (!hit) continue;
+      buckets.get(hit.label)!.push({
+        id: m.id,
+        round: hit.label,
+        home: m.home,
+        away: m.away,
+        homeScore: m.status === 'SCHEDULED' ? undefined : m.homeScore,
+        awayScore: m.status === 'SCHEDULED' ? undefined : m.awayScore,
+        status: m.status,
+        kickoff: m.kickoff,
+      });
+    }
+    const rounds = ORDER.map((o) => ({ round: o.label, matches: buckets.get(o.label)! }))
+      .filter((r) => r.matches.length > 0);
+    return { rounds };
   }
 
   private async getEvents(fixtureId: string, match: Match): Promise<MatchEvent[]> {

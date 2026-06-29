@@ -26,6 +26,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="tournament"
+        options={{
+          title: 'Turnering',
+          tabBarIcon: ({ color }) => <TabIcon glyph="🏆" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Notiser',

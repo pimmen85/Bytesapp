@@ -165,6 +165,35 @@
   .footnote { text-align:center; font-size:12px; color:var(--faint); margin:26px 18px 0; }
 
   .hint-strip { max-width:420px; font-size:12px; color:var(--faint); text-align:center; margin-top:16px; line-height:1.5; }
+
+  /* Tabeller */
+  .gcard { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:16px; margin-bottom:16px; }
+  .gtitle { font-size:17px; font-weight:700; margin-bottom:10px; }
+  table.standings { width:100%; border-collapse:collapse; }
+  table.standings th { font-size:11px; color:var(--faint); font-weight:600; text-transform:uppercase;
+    text-align:center; padding:4px 0 8px; border-bottom:1px solid var(--border); }
+  table.standings th.l { text-align:left; }
+  table.standings td { font-size:14px; padding:7px 0; color:var(--muted); text-align:center; font-variant-numeric:tabular-nums; }
+  table.standings td.team { text-align:left; color:var(--text); display:flex; align-items:center; gap:8px; }
+  table.standings td.pos { width:18px; }
+  table.standings td.pts { color:var(--text); font-weight:800; }
+  table.standings tr.qual td.pos { box-shadow:inset 3px 0 0 var(--pitch); }
+  .legend { font-size:11px; color:var(--faint); margin-top:10px; line-height:1.4; }
+
+  /* Slutspel */
+  .roundT { font-size:11px; color:var(--faint); text-transform:uppercase; margin:18px 0 8px; }
+  .bcell { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:11px; margin-bottom:8px; position:relative; }
+  .bcell.live { border-color:var(--live); }
+  .bside { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .bside .bf { font-size:18px; width:24px; }
+  .bside .bn { flex:1; font-size:15px; }
+  .bside .bs { width:18px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .bside.won .bn, .bside.won .bs { color:var(--pitch); font-weight:800; }
+  .bdiv { height:1px; background:var(--border); margin:2px 0; }
+  .btbd { font-size:13px; color:var(--faint); font-style:italic; }
+  .blive { position:absolute; top:-8px; right:10px; background:var(--live); color:#fff; font-size:9px;
+    font-weight:700; padding:1px 6px; border-radius:999px; }
+
   .hidden { display:none !important; }
 </style>
 </head>
@@ -227,6 +256,16 @@
       </div>
     </div>
 
+    <!-- TURNERING -->
+    <div class="screen hidden" id="screen-turnering">
+      <div class="topbar"><div><h2>Turnering</h2></div></div>
+      <div class="seg" id="segT">
+        <button data-t="groups" class="active">Grupper</button>
+        <button data-t="bracket">Slutspel</button>
+      </div>
+      <div id="turneringBody" class="pad"></div>
+    </div>
+
     <!-- MATCHDETALJ -->
     <div class="overlay" id="overlay">
       <div class="ovbar"><button id="closeOv">‹ Tillbaka</button></div>
@@ -236,6 +275,7 @@
     <!-- TABS -->
     <div class="tabbar">
       <button data-tab="matcher" class="active"><span class="g">⚽</span>Matcher</button>
+      <button data-tab="turnering"><span class="g">🏆</span>Turnering</button>
       <button data-tab="notiser"><span class="g">🔔</span>Notiser</button>
     </div>
   </div>
@@ -428,6 +468,63 @@ function tick(){
 // Snabbtempo i demon: 1 matchminut ≈ 1,1 s, så mål kommer ofta.
 setInterval(tick, 1100);
 
+/* ---- Turnering: data ---- */
+const groups = [
+  {group:'Grupp A', rows:[
+    ['Sverige','SE',3,6,2],['Spanien','ES',3,5,2],['Uruguay','UY',3,4,0],['Ghana','GH',3,1,-6]]},
+  {group:'Grupp B', rows:[
+    ['Brasilien','BR',3,9,7],['Argentina','AR',3,6,3],['Japan','JP',3,3,-2],['Marocko','MA',3,0,-8]]},
+  {group:'Grupp C', rows:[
+    ['Frankrike','FR',3,7,4],['England','GB-ENG',3,7,3],['Nederländerna','NL',3,3,-1],['Senegal','SN',3,0,-6]]},
+  {group:'Grupp D', rows:[
+    ['Portugal','PT',3,7,4],['Tyskland','DE',3,6,2],['USA','US',3,4,0],['Sydkorea','KR',3,0,-6]]},
+];
+const bracket = [
+  {round:'Åttondelsfinal', matches:[
+    {h:['Sverige','SE'],a:['Spanien','ES'],hs:2,as:1,st:'LIVE'},
+    {h:['Nederländerna','NL'],a:['USA','US'],hs:2,as:1,st:'FINISHED'},
+    {h:['Brasilien','BR'],a:['Argentina','AR'],st:'SCHEDULED'},
+    {h:['Frankrike','FR'],a:['England','GB-ENG'],st:'SCHEDULED'},
+  ]},
+  {round:'Kvartsfinal', matches:[
+    {h:['Sverige','SE'],a:['Nederländerna','NL'],st:'SCHEDULED'}, {st:'SCHEDULED'},
+  ]},
+  {round:'Semifinal', matches:[{st:'SCHEDULED'}]},
+  {round:'Final', matches:[{st:'SCHEDULED'}]},
+];
+let tView='groups';
+function renderGroups(){
+  return groups.map(g=>`<div class="gcard"><div class="gtitle">${g.group}</div>
+    <table class="standings"><thead><tr><th></th><th class="l">Lag</th><th>S</th><th>MS</th><th>P</th></tr></thead>
+    <tbody>${g.rows.map((r,i)=>{const[name,code,sp,pts,gd]=r;const q=i<2;
+      return `<tr class="${q?'qual':''}"><td class="pos">${i+1}</td>
+      <td class="team">${flag(code)} ${name}</td><td>${sp}</td>
+      <td>${gd>0?'+'+gd:gd}</td><td class="pts">${pts}</td></tr>`;}).join('')}</tbody></table>
+    <div class="legend">S = spelade · MS = målskillnad · P = poäng · <span style="color:var(--pitch)">grönt</span> = vidare till slutspel</div>
+  </div>`).join('');
+}
+function bside(team,score,won,sched){
+  if(!team) return '';
+  return `<div class="bside ${won?'won':''}"><span class="bf">${flag(team[1])}</span>
+    <span class="bn">${team[0]}</span><span class="bs">${sched||score==null?'–':score}</span></div>`;
+}
+function renderBracket(){
+  return bracket.map(r=>`<div class="roundT">${r.round}</div>
+    ${r.matches.map(m=>{
+      if(!m.h) return `<div class="bcell"><span class="btbd">Inte bestämd än</span></div>`;
+      const live=m.st==='LIVE'; const sched=m.st==='SCHEDULED';
+      const hw=m.st==='FINISHED'&&m.hs>m.as, aw=m.st==='FINISHED'&&m.as>m.hs;
+      return `<div class="bcell ${live?'live':''}">${bside(m.h,m.hs,hw,sched)}<div class="bdiv"></div>${bside(m.a,m.as,aw,sched)}${live?'<span class="blive">LIVE</span>':''}</div>`;
+    }).join('')}`).join('');
+}
+function renderTurnering(){
+  document.getElementById('turneringBody').innerHTML = tView==='groups'?renderGroups():renderBracket();
+}
+document.querySelectorAll('#segT button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#segT button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); tView=b.dataset.t; renderTurnering();};
+});
+
 /* ---- Tabs ---- */
 document.querySelectorAll('.tabbar button').forEach(b=>{
   b.onclick=()=>{
@@ -435,7 +532,9 @@ document.querySelectorAll('.tabbar button').forEach(b=>{
     b.classList.add('active');
     const tab=b.dataset.tab;
     document.getElementById('screen-matcher').classList.toggle('hidden', tab!=='matcher');
+    document.getElementById('screen-turnering').classList.toggle('hidden', tab!=='turnering');
     document.getElementById('screen-notiser').classList.toggle('hidden', tab!=='notiser');
+    if(tab==='turnering') renderTurnering();
   };
 });
 /* ---- Filter ---- */

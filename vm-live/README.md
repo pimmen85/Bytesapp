@@ -30,6 +30,7 @@ du kan klicka på matcher, byta flik och se en **mål-notis** dyka upp. Den rikt
 
 ### Appen (`mobile/`)
 - **Matcher**-flik: live/kommande/spelade VM-matcher, live-badge med pulserande minut, följ lag.
+- **Turnering**-flik: **gruppspelstabeller** (med kvalmarkering för topp 2) + **slutspelsträd**.
 - **Matchdetalj**: scoreboard + tidslinje (mål, kort, byten) som live-uppdateras var 15:e s.
 - **Notiser**-flik: pre-permission priming + **granulära toggles** (mål, avspark, slutsignal,
   röda kort, "endast lag jag följer") och en testnotis-knapp.
@@ -65,6 +66,11 @@ Appen kör på **mock-data** direkt – du ser en live-match (Sverige–Spanien)
 och kan testa notisflödet på Notiser-fliken.
 
 ---
+
+## 🔔 Riktiga push-notiser till din telefon
+Se **[`SETUP-PUSH.md`](./SETUP-PUSH.md)** för en exakt steg-för-steg-guide: bygg appen med EAS,
+deploya servern (lokalt eller gratis på Render), och verifiera med `curl -X POST <server>/push/test`.
+Android är enklast (ingen Apple-avgift). Servern har en `/push/test`-endpoint för snabb verifiering.
 
 ## Koppla in skarpt API (när du vill ha riktig VM-data)
 

@@ -20,6 +20,7 @@ import {
   removeDevice,
   tokensForTeams,
   deviceCount,
+  allTokens,
 } from './store.js';
 
 const PORT = process.env.PORT || 4000;
@@ -111,6 +112,20 @@ app.post('/unregister', (req, res) => {
   const { token } = req.body || {};
   removeDevice(token);
   res.json({ ok: true, devices: deviceCount() });
+});
+
+/**
+ * Skicka en testnotis till alla registrerade enheter. Praktiskt för att
+ * verifiera att riktig push fungerar end-to-end: curl -X POST .../push/test
+ */
+app.post('/push/test', async (req, res) => {
+  const tokens = allTokens();
+  const { sent } = await sendPush(tokens, {
+    title: req.body?.title || '⚽ Testnotis',
+    body: req.body?.body || 'Push fungerar! 🇸🇪 Sverige 2–1 Spanien 🇪🇸',
+    data: { type: 'TEST' },
+  });
+  res.json({ ok: true, devices: tokens.length, sent });
 });
 
 app.listen(PORT, () => {

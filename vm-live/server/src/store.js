@@ -56,3 +56,8 @@ export function tokensForTeams(teamIds) {
 export function deviceCount() {
   return devices.size;
 }
+
+/** Alla registrerade push-tokens (för broadcast/test). */
+export function allTokens() {
+  return [...devices.values()].map((d) => d.token);
+}
