@@ -29,6 +29,7 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{
+    min-height:100dvh;
     background:radial-gradient(120% 80% at 50% -10%,#11201a 0%,#0b1411 60%) fixed;
     color:var(--text);
     font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -123,6 +124,9 @@
   }
   .row button:active{background:var(--surface-2);color:var(--text)}
   .row button.warn:active{color:var(--danger)}
+  .row button.armed{
+    color:var(--danger);border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.10);
+  }
 
   /* ---------- Inställningar ---------- */
   .sheet{
@@ -292,6 +296,7 @@
   // ---------- Matchtillstånd ----------
   // phase: 'idle' | 'running' | 'paused' | 'break' (period slut, fler kvar) | 'done'
   const S = { phase: 'idle', period: 0, pRem: 0, sRem: 0, subs: 0 };
+  let disarmEnd = null, disarmReset = null;   // sätts när knapparna kopplas in
 
   function resetMatch() {
     S.phase = 'idle'; S.period = 0; S.subs = 0;
@@ -493,6 +498,8 @@
     $('subBtn').disabled = !subActive;
     $('endPeriodBtn').disabled = !subActive;
     $('resetBtn').disabled = S.phase === 'idle';
+    if ($('endPeriodBtn').disabled) disarmEnd && disarmEnd();
+    if ($('resetBtn').disabled) disarmReset && disarmReset();
 
     renderSettings();
   }
@@ -531,15 +538,20 @@
 
   $('subBtn').addEventListener('click', markSub);
 
-  $('endPeriodBtn').addEventListener('click', () => {
-    if (!confirm('Avsluta period ' + (S.period + 1) + ' nu?')) return;
-    haptic(10); endPeriod();
-  });
-
-  $('resetBtn').addEventListener('click', () => {
-    if (!confirm('Nollställ matchen?')) return;
-    haptic(10); resetMatch(); toast('Nollställd');
-  });
+  // Två tryck för det som inte går att ångra – andra trycket inom 3 s kör.
+  function armable(id, run) {
+    const btn = $(id), label = btn.innerHTML;
+    let t = null;
+    const disarm = () => { clearTimeout(t); t = null; btn.innerHTML = label; btn.classList.remove('armed'); };
+    btn.addEventListener('click', () => {
+      if (t) { disarm(); haptic(10); run(); return; }
+      btn.textContent = 'Säker?'; btn.classList.add('armed'); haptic(6);
+      t = setTimeout(disarm, 3000);
+    });
+    return disarm;
+  }
+  disarmEnd = armable('endPeriodBtn', () => endPeriod());
+  disarmReset = armable('resetBtn', () => { resetMatch(); toast('Nollställd'); });
 
   // Steppers, med håll-in för att repetera
   const stepMap = { 'st-periods': 'periods', 'st-minutes': 'minutes', 'st-sub': 'sub' };
