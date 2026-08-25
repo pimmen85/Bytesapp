@@ -53,6 +53,10 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .history-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .history-card-team{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px}
 .history-card-date{font-size:11px;color:var(--muted)}
+.history-card-right{display:flex;align-items:center;gap:8px}
+.history-del{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;color:var(--muted);
+  width:24px;height:24px;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.history-del:active{background:var(--danger);color:#fff;border-color:var(--danger)}
 .history-mini-bars{display:flex;flex-direction:column;gap:4px}
 .history-mini-row{display:flex;align-items:center;gap:8px;font-size:14px}
 .history-mini-name{color:var(--muted);min-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -357,6 +361,8 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     <button class="add-btn" id="addPlayerBtn">+ Lägg till spelare</button>
     <button class="btn-primary" id="teamSaveBtn2">SPARA LAG</button>
     <div style="height:12px"></div>
+    <button class="btn-secondary" id="clearStatsBtn" style="display:none">🧹 NOLLSTÄLL SPELTIDSSTATISTIK</button>
+    <div style="height:10px"></div>
     <button class="btn-secondary btn-danger" id="deleteTeamBtn" style="display:none">🗑 TA BORT LAG</button>
   </div>
 </div>
@@ -671,7 +677,25 @@ async function saveTeam_db(teamData){
 
 async function deleteTeam_db(id){
   if(!currentUser) return;
+  // Ta även bort lagets matchhistorik, annars blir den kvar som "Okänt lag"
+  await deleteHistoryForTeam_db(id);
   await supa.from('teams').delete().eq('id',id).eq('user_id',currentUser.id);
+}
+
+// Nollställ all sparad speltidsstatistik för ett lag
+async function deleteHistoryForTeam_db(teamId){
+  if(!currentUser) return;
+  const {error}=await supa.from('match_history').delete()
+    .eq('team_id',teamId).eq('user_id',currentUser.id);
+  if(error) throw error;
+}
+
+// Ta bort en enskild sparad match
+async function deleteHistoryEntry_db(id){
+  if(!currentUser) return;
+  const {error}=await supa.from('match_history').delete()
+    .eq('id',id).eq('user_id',currentUser.id);
+  if(error) throw error;
 }
 
 async function loadHistory(){
@@ -864,7 +888,9 @@ async function renderHome(){
     const team=teams.find(t=>t.id===m.teamId);
     const maxT=Math.max(...m.playtimes.map(p=>p.seconds),1);
     return `<div class="history-card">
-      <div class="history-card-top"><div class="history-card-team">${team?esc(team.name):'Okänt lag'}</div><div class="history-card-date">${m.date}</div></div>
+      <div class="history-card-top"><div class="history-card-team">${team?esc(team.name):'Okänt lag'}</div>
+        <div class="history-card-right"><span class="history-card-date">${m.date}</span>
+        <button class="history-del" onclick="deleteHistoryEntry('${m.id}')" aria-label="Ta bort matchen">×</button></div></div>
       <div class="history-mini-bars">${m.playtimes.slice(0,5).map(p=>`
         <div class="history-mini-row">
           <span class="history-mini-name">${esc(p.name)}</span>
@@ -873,6 +899,15 @@ async function renderHome(){
         </div>`).join('')}</div></div>`;
   }).join('');
 }
+async function deleteHistoryEntry(id){
+  if(!confirm('Ta bort den här matchen ur historiken?')) return;
+  try{
+    await deleteHistoryEntry_db(id);
+    hist=await loadHistory();
+    await renderHome();
+  }catch(e){ alert('Kunde inte ta bort matchen: '+(e.message||e)); }
+}
+
 $('newTeamBtn').onclick=()=>openTeamEdit(null);
 $('joinBtn').onclick=joinTeamByCode;
 $('joinCodeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') joinTeamByCode(); });
@@ -896,6 +931,15 @@ function openTeamEdit(id){
     o.classList.toggle('selected', parseInt(o.dataset.val)===fmt);
   });
   $('deleteTeamBtn').style.display=id?'block':'none';
+  // Nollställningsknappen visar hur många sparade matcher som berörs
+  const nStats=id?hist.filter(h=>h.teamId===id).length:0;
+  const cs=$('clearStatsBtn');
+  cs.style.display=id?'block':'none';
+  cs.disabled=!nStats;
+  cs.style.opacity=nStats?'':'.45';
+  cs.textContent=nStats
+    ? `🧹 NOLLSTÄLL STATISTIK (${nStats} ${nStats===1?'match':'matcher'})`
+    : '🧹 INGEN STATISTIK SPARAD';
   showScreen('team-screen');
 }
 function selEm(e){ selEmoji=e; document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('selected',el.dataset.e===e)); }
@@ -965,7 +1009,25 @@ async function saveTeam(){
 $('teamSaveBtn').onclick=saveTeam;
 $('teamSaveBtn2').onclick=saveTeam;
 $('teamBackBtn').onclick=()=>showScreen('home-screen');
-$('deleteTeamBtn').onclick=async()=>{ if(!confirm('Ta bort laget?')) return; await deleteTeam_db(editTeamId); await renderHome(); showScreen('home-screen'); };
+$('deleteTeamBtn').onclick=async()=>{ if(!confirm('Ta bort laget? All sparad speltidsstatistik för laget tas också bort.')) return; await deleteTeam_db(editTeamId); await renderHome(); showScreen('home-screen'); };
+
+$('clearStatsBtn').onclick=async()=>{
+  const t=teams.find(t=>t.id===editTeamId);
+  const n=hist.filter(h=>h.teamId===editTeamId).length;
+  if(!n) return;
+  if(!confirm(`Nollställ speltidsstatistiken för ${t?t.name:'laget'}?\n\n${n} sparade ${n===1?'match':'matcher'} tas bort. Laget och spelarna behålls. Detta går inte att ångra.`)) return;
+  const btn=$('clearStatsBtn'); const label=btn.textContent;
+  btn.disabled=true; btn.textContent='NOLLSTÄLLER...';
+  try{
+    await deleteHistoryForTeam_db(editTeamId);
+    hist=await loadHistory();
+    await renderHome();
+    btn.textContent='🧹 INGEN STATISTIK SPARAD'; btn.style.opacity='.45';
+  }catch(e){
+    btn.disabled=false; btn.textContent=label;
+    alert('Kunde inte nollställa statistiken: '+(e.message||e));
+  }
+};
 
 // ── PRE-MATCH ──
 let keeperEl=null, pressTimer=null;
