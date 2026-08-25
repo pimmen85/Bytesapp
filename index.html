@@ -279,7 +279,28 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       <div class="login-err" id="loginErr"></div>
       <button class="btn-primary" id="loginBtn">LOGGA IN</button>
       <div class="login-toggle" id="loginToggle">Inget konto? <span onclick="toggleAuthMode()">Skapa konto</span></div>
+      <div class="login-toggle" id="forgotWrap"><span id="forgotBtn">Glömt lösenord?</span></div>
     </div>
+  </div>
+</div>
+
+<!-- NYTT LÖSENORD (efter återställningslänk) -->
+<div class="screen" id="reset-screen">
+  <div class="topbar">
+    <div style="flex:1;text-align:center">
+      <div class="topbar-title">BYTESAPPEN</div>
+      <div class="topbar-sub">Nytt lösenord</div>
+    </div>
+  </div>
+  <div class="login-wrap">
+    <div class="login-sub">Välj ett nytt lösenord för ditt konto</div>
+    <form class="login-form" onsubmit="return false;" autocomplete="on">
+      <input class="login-input" id="resetPass" type="password" placeholder="Nytt lösenord" autocomplete="new-password" name="new-password">
+      <input class="login-input" id="resetPass2" type="password" placeholder="Upprepa lösenord" autocomplete="new-password" name="confirm-password">
+      <div class="login-err" id="resetErr"></div>
+      <button class="btn-primary" id="resetBtn">SPARA NYTT LÖSENORD</button>
+      <div class="login-toggle"><span id="resetCancel">Avbryt</span></div>
+    </form>
   </div>
 </div>
 
@@ -515,6 +536,11 @@ const $=id=>document.getElementById(id);
 // ── SUPABASE ──
 const SUPA_URL='https://dcnrfttxcvbzsmvjfkzl.supabase.co';
 const SUPA_KEY='sb_publishable_CNakOF65hGaWmUA8sXhwlA_LpTo-PkS';
+// Läs av återställningslänken INNAN klienten hinner konsumera URL:en
+const _hashParams=new URLSearchParams(location.hash.replace(/^#/,''));
+let recoveryMode=_hashParams.get('type')==='recovery';
+const linkError=_hashParams.get('error_description');
+
 const supa=supabase.createClient(SUPA_URL, SUPA_KEY);
 let currentUser=null;
 
@@ -526,26 +552,73 @@ function toggleAuthMode(){
   $('loginModeText').textContent=authMode==='login'?'Logga in för att komma åt dina lag':'Skapa ett nytt konto';
   $('loginBtn').textContent=authMode==='login'?'LOGGA IN':'SKAPA KONTO';
   $('loginToggle').innerHTML=authMode==='login'?'Inget konto? <span onclick="toggleAuthMode()">Skapa konto</span>':'Har du konto? <span onclick="toggleAuthMode()">Logga in</span>';
-  $('loginErr').textContent='';
+  $('forgotWrap').style.display=authMode==='login'?'':'none';
+  setLoginMsg('');
 }
+
+// Visar meddelande under inloggningsfälten (röd = fel, grön = bekräftelse)
+function setLoginMsg(text,ok){
+  $('loginErr').style.color=ok?'var(--on)':'var(--danger)';
+  $('loginErr').textContent=text;
+}
+
+// ── GLÖMT LÖSENORD ──
+// Lösenord kan aldrig skickas ut – de lagras som hash. I stället mejlas en
+// engångslänk som låter användaren sätta ett nytt lösenord.
+$('forgotBtn').onclick=async()=>{
+  const email=$('loginEmail').value.trim();
+  if(!email){ setLoginMsg('Fyll i din e-postadress först, så skickar vi en länk.'); $('loginEmail').focus(); return; }
+  const label=$('forgotBtn').textContent;
+  $('forgotBtn').textContent='Skickar...';
+  const redirectTo=location.origin+location.pathname;
+  const {error}=await supa.auth.resetPasswordForEmail(email,{redirectTo});
+  $('forgotBtn').textContent=label;
+  // Avslöja inte om adressen finns – samma svar oavsett.
+  if(error && !/rate|limit/i.test(error.message)) { setLoginMsg(error.message); return; }
+  setLoginMsg(error?'För många försök – vänta en stund och prova igen.':'Har du ett konto på '+email+' skickas en återställningslänk dit.',!error);
+};
+
+$('resetCancel').onclick=async()=>{
+  recoveryMode=false;
+  history.replaceState(null,'',location.origin+location.pathname);
+  await supa.auth.signOut();
+  showScreen('login-screen');
+};
+
+$('resetBtn').onclick=async()=>{
+  const p1=$('resetPass').value, p2=$('resetPass2').value;
+  $('resetErr').style.color='var(--danger)';
+  if(p1.length<8){ $('resetErr').textContent='Minst 8 tecken.'; return; }
+  if(p1!==p2){ $('resetErr').textContent='Lösenorden matchar inte.'; return; }
+  $('resetBtn').textContent='...';
+  const {error}=await supa.auth.updateUser({password:p1});
+  $('resetBtn').textContent='SPARA NYTT LÖSENORD';
+  if(error){ $('resetErr').textContent=error.message; return; }
+  recoveryMode=false;
+  history.replaceState(null,'',location.origin+location.pathname);
+  $('resetPass').value=''; $('resetPass2').value='';
+  const {data:{session}}=await supa.auth.getSession();
+  if(session?.user){ currentUser=session.user; await renderHome(); showScreen('home-screen'); }
+  else { setLoginMsg('Lösenordet är uppdaterat – logga in.',true); showScreen('login-screen'); }
+};
 
 $('loginBtn').onclick=async()=>{
   const email=$('loginEmail').value.trim();
   const pass=$('loginPassword').value;
-  $('loginErr').textContent='';
-  if(!email||!pass){ $('loginErr').textContent='Fyll i e-post och lösenord.'; return; }
+  setLoginMsg('');
+  if(!email||!pass){ setLoginMsg('Fyll i e-post och lösenord.'); return; }
   $('loginBtn').textContent='...';
   let err;
   if(authMode==='signup'){
     const res=await supa.auth.signUp({email,password:pass});
     err=res.error;
-    if(!err) { $('loginErr').style.color='var(--on)'; $('loginErr').textContent='Kolla din e-post för bekräftelselänk!'; $('loginBtn').textContent='SKAPA KONTO'; return; }
+    if(!err) { setLoginMsg('Kolla din e-post för bekräftelselänk!',true); $('loginBtn').textContent='SKAPA KONTO'; return; }
   } else {
     const res=await supa.auth.signInWithPassword({email,password:pass});
     err=res.error;
   }
   $('loginBtn').textContent=authMode==='login'?'LOGGA IN':'SKAPA KONTO';
-  if(err) $('loginErr').textContent=err.message==='Invalid login credentials'?'Fel e-post eller lösenord.':err.message;
+  if(err) setLoginMsg(err.message==='Invalid login credentials'?'Fel e-post eller lösenord. Tryck "Glömt lösenord?" för att välja ett nytt.':err.message);
 };
 
 $('logoutBtn').onclick=async()=>{
@@ -1538,7 +1611,14 @@ async function initApp(){
     // Get current session immediately (don't wait for event)
     const { data: { session } } = await supa.auth.getSession();
     $('loadingScreen').style.display='none';
-    if(session?.user){
+    if(recoveryMode){
+      // Kom hit via återställningslänk – sätt nytt lösenord, gå inte in i appen
+      showScreen('reset-screen');
+    } else if(linkError){
+      showScreen('login-screen');
+      setLoginMsg(/expired|invalid/i.test(linkError)?'Länken har gått ut eller redan använts. Begär en ny.':linkError);
+      history.replaceState(null,'',location.origin+location.pathname);
+    } else if(session?.user){
       currentUser=session.user;
       await renderHome();
       showScreen('home-screen');
@@ -1552,6 +1632,14 @@ async function initApp(){
 
   // Only listen for actual login/logout – not token refresh
   supa.auth.onAuthStateChange(async(event, session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      // Täcker även PKCE-länkar där koden ligger i query-strängen
+      recoveryMode=true;
+      $('loadingScreen').style.display='none';
+      showScreen('reset-screen');
+      return;
+    }
+    if(recoveryMode) return;           // navigera inte bort medan lösenord sätts
     if(event==='SIGNED_IN' && !currentUser){
       // Only navigate on first login, not on token refresh
       currentUser=session.user;
