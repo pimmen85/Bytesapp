@@ -66,7 +66,7 @@
 
   /* ---- Setup ---- */
   .setup-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding:14px 20px 16px;display:flex;flex-direction:column;gap:13px;align-content:start}
+    padding:12px 20px 16px;display:flex;flex-direction:column;gap:11px;align-content:start}
   .lead{color:var(--muted);font-size:14.5px;line-height:1.5;margin:2px 2px 6px}
 
   .stepper{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
@@ -94,6 +94,68 @@
   .sum-val{font-size:clamp(15px,4.6vw,18px);font-weight:700;color:var(--text);
     white-space:nowrap;line-height:1}
   .sum-lbl{font-size:10.5px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;line-height:1}
+
+  /* ---- Målvakter ---- */
+  .gk-row{display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:13px 16px;color:var(--text);font:inherit;transition:transform .08s ease,background .15s}
+  .gk-row:active{transform:scale(.99);background:var(--surface-2)}
+  .gk-ico{font-size:22px;line-height:1;flex-shrink:0}
+  .gk-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .gk-title{font-size:16px;font-weight:600;line-height:1}
+  .gk-sub{font-size:12.5px;color:var(--muted);line-height:1.25;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gk-chev{color:var(--muted);font-size:24px;line-height:1;flex-shrink:0}
+
+  .back-btn{width:38px;height:38px;flex-shrink:0;border-radius:12px;cursor:pointer;
+    background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);
+    font-size:26px;line-height:1;display:grid;place-items:center;padding-bottom:3px}
+  .back-btn:active{background:#243a30}
+
+  .gk-add{display:flex;gap:9px}
+  .gk-input{flex:1;min-width:0;height:52px;border-radius:14px;padding:0 15px;font:inherit;font-size:16px;
+    background:var(--surface);border:1px solid var(--border-strong);color:var(--text);
+    -webkit-user-select:text;user-select:text}
+  .gk-input::placeholder{color:var(--muted)}
+  .gk-input:focus{outline:none;border-color:var(--match)}
+  .gk-add-btn{width:52px;flex-shrink:0;height:52px;border-radius:14px;border:none;cursor:pointer;
+    background:var(--match);color:#062018;font-size:28px;font-weight:600;line-height:1;display:grid;place-items:center}
+  .gk-add-btn:active{filter:brightness(.94)}
+
+  .gk-list{display:flex;flex-wrap:wrap;gap:8px}
+  .gk-list:empty{display:none}
+  .gk-tag{display:flex;align-items:center;gap:9px;background:var(--surface);
+    border:1px solid var(--border-strong);border-radius:999px;padding:8px 8px 8px 14px;font-size:15px}
+  .gk-tag button{width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+    background:rgba(255,255,255,.08);color:var(--muted);font-size:17px;line-height:1;display:grid;place-items:center}
+  .gk-tag button:active{background:var(--danger);color:#fff}
+
+  .gk-sched-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:4px}
+  .gk-sched-title{font-size:13px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:700}
+  .gk-even{background:none;border:none;cursor:pointer;font:inherit;font-size:13px;
+    color:var(--match);text-decoration:underline;padding:4px 0}
+  .gk-schedule{display:flex;flex-direction:column;gap:8px}
+  .gk-slot{display:flex;align-items:center;gap:12px;background:var(--surface);
+    border:1px solid var(--border);border-radius:14px;padding:9px 12px 9px 15px}
+  .gk-slot-lbl{font-size:14.5px;color:var(--muted);flex-shrink:0}
+  .gk-select{flex:1;min-width:0;height:44px;border-radius:11px;padding:0 12px;font:inherit;font-size:15.5px;
+    font-weight:600;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);
+    -webkit-appearance:none;appearance:none;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 17px) 20px,calc(100% - 12px) 20px;background-size:5px 5px,5px 5px;
+    background-repeat:no-repeat;padding-right:34px}
+  .gk-select:focus{outline:none;border-color:var(--match)}
+  .gk-note{font-size:13px;line-height:1.45;color:var(--muted);padding:2px 2px 0}
+  .gk-note.warn{color:var(--sub)}
+  .gk-empty{font-size:13.5px;color:var(--muted);line-height:1.5;padding:2px}
+
+  /* Målvakt på matchskärmen */
+  .gk-chip{display:flex;align-items:center;gap:5px;min-width:0;
+    margin-left:4px;padding-left:10px;border-left:1px solid var(--border-strong);
+    font-size:14px;font-weight:700;overflow:hidden}
+  .gk-chip[hidden]{display:none}
+  .gk-chip-ico{font-size:13px;flex-shrink:0}
+  .gk-chip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   /* ---- Knappar ---- */
   /* .screen lägger redan på safe-area i botten – lägg inte på den två gånger */
@@ -126,8 +188,9 @@
   .is-paused .dots{display:none}
   /* Dialogrutan äger skärmen – dölj pausmärket bakom den */
   .has-overlay .paused-badge{display:none}
-  .period-pill{display:flex;align-items:center;gap:9px;background:var(--surface);
+  .period-pill{display:flex;align-items:center;gap:9px;min-width:0;background:var(--surface);
     border:1px solid var(--border);border-radius:999px;padding:8px 15px}
+  .period-pill .lbl,.period-pill .val{flex-shrink:0}
   .period-pill .lbl{font-size:11px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
   .period-pill .val{font-size:15px;font-weight:700}
   .dots{display:flex;gap:6px}
@@ -185,7 +248,7 @@
     gap:8px;text-align:center;padding:30px;z-index:20}
   .overlay.show{display:flex}
   .overlay h2{font-size:30px;font-weight:800;letter-spacing:.3px}
-  .overlay p{color:var(--muted);font-size:15.5px;max-width:300px;line-height:1.5}
+  .overlay p{color:var(--muted);font-size:15.5px;max-width:300px;line-height:1.5;white-space:pre-line}
   .overlay .ov-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px;margin-top:14px}
 
   @media (prefers-reduced-motion: reduce){
@@ -222,7 +285,6 @@
   </div>
 
   <div class="setup-body">
-    <p class="lead">Ställ in matchen. En klocka räknar matchtiden per period, en parallell klocka påminner om spelarbyten.</p>
 
     <div class="stepper accent-match" id="st-periods">
       <div class="stepper-head">
@@ -257,6 +319,15 @@
       </div>
     </div>
 
+    <button class="gk-row" id="openKeepers">
+      <span class="gk-ico">🧤</span>
+      <span class="gk-text">
+        <span class="gk-title">Målvakter</span>
+        <span class="gk-sub" id="gkSummary">Ingen vald</span>
+      </span>
+      <span class="gk-chev" aria-hidden="true">›</span>
+    </button>
+
     <div class="summary" id="summary"></div>
   </div>
 
@@ -268,12 +339,45 @@
   </div>
 </section>
 
+<!-- ============ MÅLVAKTER ============ -->
+<section id="keepersScreen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" id="keepersBack" aria-label="Tillbaka">‹</button>
+    <div>
+      <div class="brand-title">Målvakter</div>
+      <div class="brand-sub">En per period</div>
+    </div>
+  </div>
+
+  <div class="setup-body">
+    <div class="gk-add">
+      <input id="gkName" class="gk-input" type="text" placeholder="Lägg till namn"
+             maxlength="18" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+      <button class="gk-add-btn" id="gkAdd" aria-label="Lägg till målvakt">+</button>
+    </div>
+
+    <div id="gkList" class="gk-list"></div>
+
+    <div class="gk-sched-head">
+      <span class="gk-sched-title">Vem står i mål?</span>
+      <button class="gk-even" id="gkEven">Fördela jämnt</button>
+    </div>
+    <div id="gkSchedule" class="gk-schedule"></div>
+    <div id="gkNote" class="gk-note"></div>
+  </div>
+
+  <div class="footer">
+    <button class="btn btn-primary" id="keepersDone">Klar</button>
+  </div>
+</section>
+
 <!-- ============ TIMER ============ -->
 <section id="timerScreen" class="screen">
   <div class="timer-top">
     <div class="period-pill">
       <span class="lbl">Period</span>
       <span class="val tnum" id="periodVal">1 / 2</span>
+      <span class="gk-chip" id="gkChip" hidden><span class="gk-chip-ico">🧤</span><span id="gkChipName"></span></span>
     </div>
     <div class="dots" id="dots"></div>
     <div class="paused-badge" id="pausedBadge"><span class="pulse"></span><span id="pausedText">Pausad</span></div>
@@ -365,7 +469,8 @@
 
   // ---------- Inställningar ----------
   const LIMITS = { periods: [1, 12], minutes: [1, 60], sub: [1, 30] };
-  const DEFAULTS = { periods: 2, minutes: 12, sub: 5 };
+  const DEFAULTS = { periods: 2, minutes: 12, sub: 5, keepers: [], gk: [] };
+  const MAX_KEEPERS = 12;
   let cfg = loadCfg();
 
   function loadCfg() {
@@ -375,11 +480,126 @@
         periods: clamp(s.periods, ...LIMITS.periods),
         minutes: clamp(s.minutes, ...LIMITS.minutes),
         sub: clamp(s.sub, ...LIMITS.sub),
+        keepers: Array.isArray(s.keepers) ? s.keepers.filter(n => typeof n === 'string').slice(0, 12) : [],
+        gk: Array.isArray(s.gk) ? s.gk.slice(0, 12) : [],
       };
     } catch (e) {}
-    return { ...DEFAULTS };
+    return { ...DEFAULTS, keepers: [], gk: [] };
   }
   function saveCfg() { try { localStorage.setItem('matchtimern.cfg', JSON.stringify(cfg)); } catch (e) {} }
+
+  // ---------- Målvakter ----------
+  // Rotationen ger en målvakt per period i tur och ordning, så ingen står
+  // fler perioder än någon annan (så länge det finns minst lika många
+  // målvakter som perioder). Manuella val behålls så länge de är giltiga.
+  // cfg.gk innehåller BARA manuella val (null = låt appen välja). Schemat
+  // räknas fram vid behov, så automatiken alltid fyller luckorna med den
+  // som stått minst – även när listan ändras eller ett manuellt val görs.
+  function gkPlan() {
+    const R = cfg.keepers, P = cfg.periods;
+    if (!R.length) return [];
+    const manual = (cfg.gk || []).slice(0, P).map(n => (n && R.includes(n)) ? n : null);
+    const out = new Array(P).fill(null);
+    const count = new Map(R.map(n => [n, 0]));
+    manual.forEach((n, i) => { if (n) { out[i] = n; count.set(n, count.get(n) + 1); } });
+    for (let i = 0; i < P; i++) {
+      if (out[i]) continue;
+      let best = R[0];
+      for (const n of R) if (count.get(n) < count.get(best)) best = n;
+      out[i] = best; count.set(best, count.get(best) + 1);
+    }
+    return out;
+  }
+  // Rensa manuella val -> ren rotation
+  function assignEven() { cfg.gk = []; }
+
+  // Text som beskriver hur jämnt det blev
+  function balanceNote(plan) {
+    const R = cfg.keepers;
+    if (!R.length) return ['', false];
+    const counts = new Map(R.map(n => [n, 0]));
+    plan.forEach(n => counts.set(n, (counts.get(n) || 0) + 1));
+    const used = [...counts.values()];
+    const max = Math.max(...used), min = Math.min(...used);
+    if (R.length < cfg.periods) {
+      const extra = [...counts].filter(([, c]) => c === max).map(([n]) => n);
+      return [`${R.length} målvakter på ${cfg.periods} perioder – ${extra.join(', ')} står ${max} perioder.`, true];
+    }
+    if (max > 1) {
+      const twice = [...counts].filter(([, c]) => c > 1).map(([n]) => n);
+      const idle = [...counts].filter(([, c]) => c === 0).map(([n]) => n);
+      return [`${twice.join(', ')} står ${max} perioder${idle.length ? `, medan ${idle.join(', ')} inte står alls` : ''}.`, true];
+    }
+    if (min === 0 && R.length > cfg.periods) {
+      const idle = [...counts].filter(([, c]) => c === 0).map(([n]) => n);
+      return [`Alla står högst en period. ${idle.join(', ')} står inte den här matchen.`, false];
+    }
+    return ['Alla står precis en period var.', false];
+  }
+
+  function renderKeepers() {
+    const R = cfg.keepers;
+    const plan = gkPlan();
+
+    // Namnlistan
+    const list = $('gkList');
+    list.innerHTML = R.map((n, i) =>
+      `<span class="gk-tag">${esc(n)}<button data-i="${i}" aria-label="Ta bort ${esc(n)}">×</button></span>`
+    ).join('');
+    list.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      cfg.keepers.splice(+b.dataset.i, 1);
+      // Släpp val som pekar på en borttagen målvakt
+      cfg.gk = (cfg.gk || []).map(n => cfg.keepers.includes(n) ? n : null);
+      saveCfg(); renderKeepers(); renderSetup(); haptic(8);
+    }));
+
+    // Schemat: en rulle per period
+    const sched = $('gkSchedule');
+    if (!R.length) {
+      sched.innerHTML = '<div class="gk-empty">Lägg till namnen på era målvakter, så fördelas de automatiskt med en per period.</div>';
+      $('gkNote').textContent = '';
+      $('gkNote').className = 'gk-note';
+      return;
+    }
+    sched.innerHTML = Array.from({ length: cfg.periods }, (_, i) =>
+      `<label class="gk-slot"><span class="gk-slot-lbl">Period ${i + 1}</span>` +
+      `<select class="gk-select" data-i="${i}">` +
+      R.map(n => `<option value="${esc(n)}"${n === plan[i] ? ' selected' : ''}>${esc(n)}</option>`).join('') +
+      `</select></label>`
+    ).join('');
+    sched.querySelectorAll('select').forEach(s => s.addEventListener('change', () => {
+      cfg.gk = cfg.gk || [];
+      cfg.gk[+s.dataset.i] = s.value;   // manuellt val, resten fylls om automatiskt
+      saveCfg(); renderKeepers(); renderSetup(); haptic(8);
+    }));
+
+    const [note, warn] = balanceNote(plan);
+    $('gkNote').textContent = note;
+    $('gkNote').className = 'gk-note' + (warn ? ' warn' : '');
+  }
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function addKeeper() {
+    const inp = $('gkName');
+    const name = inp.value.trim().replace(/\s+/g, ' ');
+    if (!name) return;
+    if (cfg.keepers.length >= MAX_KEEPERS) { toast(`Max ${MAX_KEEPERS} målvakter`, 'sub', ICO_SUB); return; }
+    if (cfg.keepers.some(n => n.toLowerCase() === name.toLowerCase())) {
+      toast(`${name} finns redan`, 'sub', ICO_SUB); inp.select(); return;
+    }
+    cfg.keepers.push(name);
+    inp.value = '';
+    saveCfg(); renderKeepers(); renderSetup(); haptic(10);
+  }
+
+  $('gkAdd').addEventListener('click', addKeeper);
+  $('gkName').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addKeeper(); } });
+  $('gkEven').addEventListener('click', () => { assignEven(); saveCfg(); renderKeepers(); renderSetup(); haptic(10); });
+  $('openKeepers').addEventListener('click', () => { renderKeepers(); show('keepersScreen'); });
+  $('keepersBack').addEventListener('click', () => show('setupScreen'));
+  $('keepersDone').addEventListener('click', () => show('setupScreen'));
 
   function renderSetup() {
     $('v-periods').textContent = cfg.periods;
@@ -391,6 +611,12 @@
       `<div class="sum-item"><span class="sum-val">${totalMin} min</span><span class="sum-lbl">Totalt</span></div>` +
       `<div class="sum-item"><span class="sum-val">${cfg.periods} × ${cfg.minutes} min</span><span class="sum-lbl">Perioder</span></div>` +
       `<div class="sum-item"><span class="sum-val">var ${cfg.sub} min</span><span class="sum-lbl">Byten</span></div>`;
+    // Målvaktsraden
+    const gkNames = gkPlan();
+    $('gkSummary').textContent = !cfg.keepers.length
+      ? 'Ingen vald – tryck för att lägga till'
+      : gkNames.map((n, i) => `${i + 1}. ${n}`).join(' · ');
+
     // Inaktivera knappar vid gräns
     bindLimit('st-periods', cfg.periods, LIMITS.periods);
     bindLimit('st-minutes', cfg.minutes, LIMITS.minutes);
@@ -440,6 +666,7 @@
     periodElapsed: 0,     // sekunder i aktuell period
     subElapsed: 0,        // sekunder i pågående bytescykel (egen parallell klocka)
     subCount: 0,          // antal genomförda byten denna period
+    gk: [],               // målvakt per period (fryst vid matchstart)
     lastTick: 0,
   };
 
@@ -520,6 +747,7 @@
     M.periodElapsed = 0;
     M.subElapsed = 0;
     M.subCount = 0;
+    M.gk = gkPlan();   // frys schemat för den här matchen
     buildDots();
     show('timerScreen');
     setStatus('ready');   // öppna matchen utan att starta klockan
@@ -611,9 +839,11 @@
   }
 
   function showBreakOverlay() {
+    const next = M.gk[M.period];   // målvakt för nästa period
     showOverlay(
       `Period ${M.period} slut`,
-      `Paus före period ${M.period + 1} av ${M.periods}.`,
+      `Paus före period ${M.period + 1} av ${M.periods}.` +
+      (next ? `\n🧤 ${next} går i mål.` : ''),
       `Starta period ${M.period + 1}`, () => nextPeriod(),
       'Avsluta match', confirmExit
     );
@@ -635,7 +865,8 @@
     M.subCount = 0;
     setStatus('running');
     render();
-    toast(`Period ${M.period} igång`, 'match', ICO_FLAG);
+    const keeper = M.gk[M.period - 1];
+    toast(`Period ${M.period} igång` + (keeper ? ` · 🧤 ${keeper}` : ''), 'match', ICO_FLAG);
   }
 
   function flash(cardId) {
@@ -647,6 +878,10 @@
   function render() {
     paintDots();
     $('periodVal').textContent = `${M.period} / ${M.periods}`;
+
+    const keeper = M.gk[M.period - 1];
+    $('gkChip').hidden = !keeper;
+    if (keeper) $('gkChipName').textContent = keeper;
 
     // Matchtid (räknar ner mot noll, precis som bytesklockan)
     const mElapsed = M.periodElapsed, mRemain = Math.max(0, M.periodLen - mElapsed);
