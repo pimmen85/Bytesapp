@@ -1344,24 +1344,30 @@ function assignPositionsFairly(players, currentElapsed){
   // Helper: get zone for a position id
   const getZone=posId=>(POS.find(pp=>pp.id===posId)?.zone||'mid');
 
-  // Build cost matrix: history + style affinity + jitter
+  // Kostnad = hur mycket spelaren redan stått där (ruta + linje) + stilpåslag + slump.
+  // Linjehistoriken är det som ger "god mix": den som stått back en period dras
+  // mot mitten nästa, så ingen fastnar på samma linje match efter match.
   const cost=players.map(p=>{
     const style=p.style||'neutral';
+    const hist=p.posHistory||[];
     return positions.map(posId=>{
-      const histCount=(p.posHistory||[]).filter(h=>h===posId).length;
       const zone=getZone(posId);
+      const histCount=hist.filter(h=>h===posId).length;          // samma ruta
+      const zoneHist=hist.filter(h=>getZone(h)===zone).length;   // samma linje
       let stylePenalty=0;
       if(style==='passive'){
-        // Passiva dras bakåt: back helst, mitt går bra, forward bara i nödfall
-        if(zone==='fwd') stylePenalty=6.0;
-        else if(zone==='mid') stylePenalty=1.5;
-        else stylePenalty=-0.5;
+        // Forward bara i nödfall. Mitten lutar lätt bort i början, men blir
+        // mer attraktiv för varje period spelaren stått back – annars förlorar
+        // en passiv alltid de få mittplatserna och fastnar på backlinjen.
+        const defHist=hist.filter(h=>getZone(h)==='def').length;
+        if(zone==='fwd') stylePenalty=5.0;
+        else if(zone==='mid') stylePenalty=0.4-1.2*defHist;
       } else if(style==='offensive'){
-        // Offensiva dras framåt, så en stark hamnar bredvid en ev. passiv forward
+        // Offensiva dras framåt, så en starkare hamnar bredvid en ev. passiv forward
         if(zone==='def') stylePenalty=2.0;
         else if(zone==='fwd') stylePenalty=-0.5;
       }
-      return histCount + stylePenalty + Math.random()*0.2;
+      return histCount + zoneHist*0.9 + stylePenalty + Math.random()*0.2;
     });
   });
 
