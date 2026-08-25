@@ -53,6 +53,10 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .history-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .history-card-team{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px}
 .history-card-date{font-size:11px;color:var(--muted)}
+.clear-all{order:1;background:none;border:none;cursor:pointer;white-space:nowrap;padding:2px 0;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);text-decoration:underline}
+.clear-all:active{color:var(--danger)}
 .history-card-right{display:flex;align-items:center;gap:8px}
 .history-del{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;color:var(--muted);
   width:24px;height:24px;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
@@ -331,7 +335,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     </div>
     <div id="joinErr" style="font-size:12px;color:var(--danger);margin-bottom:8px;min-height:16px"></div>
 
-    <div class="section-label">Senaste matcher</div>
+    <div class="section-label">Senaste matcher<button class="clear-all" id="clearAllStatsBtn">🧹 Rensa allt</button></div>
     <div id="historySection"></div>
   </div>
 </div>
@@ -690,6 +694,13 @@ async function deleteHistoryForTeam_db(teamId){
   if(error) throw error;
 }
 
+// Nollställ all sparad speltidsstatistik för alla lag
+async function deleteAllHistory_db(){
+  if(!currentUser) return;
+  const {error}=await supa.from('match_history').delete().eq('user_id',currentUser.id);
+  if(error) throw error;
+}
+
 // Ta bort en enskild sparad match
 async function deleteHistoryEntry_db(id){
   if(!currentUser) return;
@@ -882,6 +893,7 @@ async function renderHome(){
     </div>`).join('');
 
   const hs=$('historySection');
+  $('clearAllStatsBtn').style.display=hist.length?'':'none';
   const recent=[...hist].reverse().slice(0,5);
   if(!recent.length){ hs.innerHTML='<div style="color:var(--muted);font-size:13px;padding:4px 0">Inga matcher spelade ännu.</div>'; return; }
   hs.innerHTML=recent.map(m=>{
@@ -907,6 +919,24 @@ async function deleteHistoryEntry(id){
     await renderHome();
   }catch(e){ alert('Kunde inte ta bort matchen: '+(e.message||e)); }
 }
+
+$('clearAllStatsBtn').onclick=async()=>{
+  const n=hist.length;
+  if(!n) return;
+  const nTeams=new Set(hist.map(h=>h.teamId)).size;
+  if(!confirm(`Nollställ ALL speltidsstatistik?\n\n${n} sparade ${n===1?'match':'matcher'} från ${nTeams} ${nTeams===1?'lag':'lag'} tas bort.\nAlla lag och spelare behålls. Detta går inte att ångra.`)) return;
+  const btn=$('clearAllStatsBtn'); const label=btn.textContent;
+  btn.disabled=true; btn.textContent='RENSAR...';
+  try{
+    await deleteAllHistory_db();
+    hist=await loadHistory();
+    await renderHome();
+  }catch(e){
+    alert('Kunde inte rensa statistiken: '+(e.message||e));
+  }finally{
+    btn.disabled=false; btn.textContent=label;
+  }
+};
 
 $('newTeamBtn').onclick=()=>openTeamEdit(null);
 $('joinBtn').onclick=joinTeamByCode;
