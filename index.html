@@ -888,6 +888,9 @@ let POS=[{id:'GK',lb:'MV',x:50,y:94},...FORMATIONS[9]];
 let OFP=FORMATIONS[9].map(p=>p.id);
 const FWD_ZONES=new Set(['fwd']);
 const DEF_ZONES=new Set(['def','mid']);
+// Anfallshalvan: här får som mest EN passiv spelare stå åt gången,
+// så att två svaga aldrig hamnar som forward+mitt, båda forward eller båda mitt.
+const ATTACK_ZONES=new Set(['fwd','mid']);
 
 function applyFormat(n){
   cfgFormat=n;
@@ -1341,14 +1344,6 @@ function assignPositionsFairly(players, currentElapsed){
   // Helper: get zone for a position id
   const getZone=posId=>(POS.find(pp=>pp.id===posId)?.zone||'mid');
 
-  // Group positions by zone/line
-  const lineGroups={};
-  positions.forEach(posId=>{
-    const z=getZone(posId);
-    if(!lineGroups[z]) lineGroups[z]=[];
-    lineGroups[z].push(posId);
-  });
-
   // Build cost matrix: history + style affinity + jitter
   const cost=players.map(p=>{
     const style=p.style||'neutral';
@@ -1356,8 +1351,16 @@ function assignPositionsFairly(players, currentElapsed){
       const histCount=(p.posHistory||[]).filter(h=>h===posId).length;
       const zone=getZone(posId);
       let stylePenalty=0;
-      if(style==='passive' && zone==='fwd') stylePenalty=3.0;
-      if(style==='offensive' && zone==='def') stylePenalty=2.0;
+      if(style==='passive'){
+        // Passiva dras bakåt: back helst, mitt går bra, forward bara i nödfall
+        if(zone==='fwd') stylePenalty=6.0;
+        else if(zone==='mid') stylePenalty=1.5;
+        else stylePenalty=-0.5;
+      } else if(style==='offensive'){
+        // Offensiva dras framåt, så en stark hamnar bredvid en ev. passiv forward
+        if(zone==='def') stylePenalty=2.0;
+        else if(zone==='fwd') stylePenalty=-0.5;
+      }
       return histCount + stylePenalty + Math.random()*0.2;
     });
   });
@@ -1379,43 +1382,33 @@ function assignPositionsFairly(players, currentElapsed){
     usedPlayer.add(bestP); usedPos.add(bestPos);
   }
 
-  // ── LINE BALANCE CHECK ──
-  // For each line/zone: if >1 passive player assigned, swap the "cheapest swap"
-  // passive player to a line that has fewer passives, using a non-passive from that line.
-  const zoneNames=Object.keys(lineGroups);
-  for(let pass=0; pass<3; pass++){ // up to 3 rebalancing passes
-    // Count passives per zone in current assignment
-    const passivesInZone={};
-    zoneNames.forEach(z=>passivesInZone[z]=0);
-    players.forEach((p,pi)=>{
-      if((p.style||'neutral')==='passive'){
-        const z=getZone(assigned[pi]);
-        passivesInZone[z]=(passivesInZone[z]||0)+1;
-      }
-    });
+  // ── LINJEBALANS ──
+  const isPassive=pi=>(players[pi].style||'neutral')==='passive';
+  const zoneOf=pi=>getZone(assigned[pi]);
+  const idx=players.map((_,i)=>i);
 
-    // Find a zone with >1 passive
-    const overloadedZone=zoneNames.find(z=>passivesInZone[z]>1);
-    if(!overloadedZone) break; // all good
+  // Steg 1: högst EN passiv i anfallshalvan (forward + mitt).
+  // Det utesluter forward+mitt, båda forward och båda mitt på en gång.
+  for(let pass=0; pass<8; pass++){
+    const inAttack=idx.filter(i=>isPassive(i) && ATTACK_ZONES.has(zoneOf(i)));
+    if(inAttack.length<=1) break;
+    // Flytta ner den som står längst fram först
+    inAttack.sort((a,b)=>(zoneOf(a)==='fwd'?0:1)-(zoneOf(b)==='fwd'?0:1));
+    const move=inAttack[0];
+    const swap=idx.find(i=>!isPassive(i) && !ATTACK_ZONES.has(zoneOf(i)));
+    if(swap===undefined) break;   // fler passiva än platser bak – går inte att lösa
+    const t=assigned[move]; assigned[move]=assigned[swap]; assigned[swap]=t;
+  }
 
-    // Find a zone with 0 passives and available positions
-    const underloadedZone=zoneNames.find(z=>z!==overloadedZone && (passivesInZone[z]||0)===0);
-    if(!underloadedZone) break; // can't fix, accept it
-
-    // Find a passive player in the overloaded zone
-    const passiveIdx=players.findIndex((p,pi)=>
-      (p.style||'neutral')==='passive' && getZone(assigned[pi])===overloadedZone
-    );
-    // Find a non-passive player in the underloaded zone
-    const swapIdx=players.findIndex((p,pi)=>
-      (p.style||'neutral')!=='passive' && getZone(assigned[pi])===underloadedZone
-    );
-    if(passiveIdx===-1 || swapIdx===-1) break;
-
-    // Swap their positions
-    const tmp=assigned[passiveIdx];
-    assigned[passiveIdx]=assigned[swapIdx];
-    assigned[swapIdx]=tmp;
+  // Steg 2: ingen passiv på forward så länge en starkare kan ta platsen.
+  // Backlinjen först (helt bort från anfallet), annars mitten.
+  for(let pass=0; pass<4; pass++){
+    const fp=idx.find(i=>isPassive(i) && zoneOf(i)==='fwd');
+    if(fp===undefined) break;
+    let sw=idx.find(i=>!isPassive(i) && zoneOf(i)==='def');
+    if(sw===undefined) sw=idx.find(i=>!isPassive(i) && zoneOf(i)==='mid');
+    if(sw===undefined) break;     // nödfall: ensam passiv forward, övriga fram är starkare
+    const t=assigned[fp]; assigned[fp]=assigned[sw]; assigned[sw]=t;
   }
 
   // Commit assignments
