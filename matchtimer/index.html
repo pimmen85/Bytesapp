@@ -96,7 +96,8 @@
   .sum-lbl{font-size:10.5px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;line-height:1}
 
   /* ---- Knappar ---- */
-  .footer{padding:12px 20px calc(14px + var(--safe-b));flex-shrink:0}
+  /* .screen lägger redan på safe-area i botten – lägg inte på den två gånger */
+  .footer{padding:12px 20px 14px;flex-shrink:0}
   .btn{width:100%;height:62px;border:none;border-radius:18px;font-size:18px;font-weight:700;
     letter-spacing:.3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
     transition:transform .08s ease, filter .15s, background .2s}
@@ -109,17 +110,22 @@
   .btn svg{width:22px;height:22px}
 
   /* ---- Timerskärm ---- */
-  .timer-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 4px;position:relative}
-  .paused-badge{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--border-strong);
-    border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:700;letter-spacing:1.6px;
-    text-transform:uppercase;color:var(--text);z-index:5}
+  .timer-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px 4px}
+  /* Ligger i flödet mellan pillret och prickarna – aldrig ovanpå dem */
+  .paused-badge{display:none;align-items:center;gap:8px;white-space:nowrap;
+    background:var(--surface-2);border:1px solid var(--border-strong);
+    border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:700;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--text)}
   .paused-badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--text);
     animation:pausePulse 1.4s ease-in-out infinite}
   @keyframes pausePulse{0%,100%{opacity:.3;transform:scale(.75)}50%{opacity:1;transform:scale(1.1)}}
   .is-paused .paused-badge{display:flex}
   .is-paused .tcard{opacity:.4;transition:opacity .3s}
-  .is-paused .period-pill,.is-paused .dots{opacity:.35}
+  .is-paused .period-pill{opacity:.35}
+  /* Prickarna är redundanta med "1 / 2"-pillret – ge plats åt märket i stället */
+  .is-paused .dots{display:none}
+  /* Dialogrutan äger skärmen – dölj pausmärket bakom den */
+  .has-overlay .paused-badge{display:none}
   .period-pill{display:flex;align-items:center;gap:9px;background:var(--surface);
     border:1px solid var(--border);border-radius:999px;padding:8px 15px}
   .period-pill .lbl{font-size:11px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
@@ -156,7 +162,7 @@
   @keyframes flashSub{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--sub) inset, 0 0 36px var(--sub-dim)}}
 
   /* Kontroller längst ned på timerskärmen */
-  .controls{padding:6px 18px calc(16px + var(--safe-b));display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+  .controls{padding:6px 18px 16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
   .controls-row{display:flex;gap:10px}
   .controls-row .btn{flex:1}
   .btn-sub{background:var(--surface-2);color:var(--sub);border:1px solid rgba(251,191,36,.45)}
@@ -270,7 +276,7 @@
       <span class="val tnum" id="periodVal">1 / 2</span>
     </div>
     <div class="dots" id="dots"></div>
-    <div class="paused-badge" id="pausedBadge"><span class="pulse"></span>Pausad</div>
+    <div class="paused-badge" id="pausedBadge"><span class="pulse"></span><span id="pausedText">Pausad</span></div>
   </div>
 
   <div class="arena">
@@ -334,7 +340,7 @@
   </div>
 </section>
 
-<div class="toast" id="toast"><span class="ico" id="toastIco"></span><span id="toastMsg"></span></div>
+<div class="toast" id="toast" role="status" aria-live="assertive"><span class="ico" id="toastIco"></span><span id="toastMsg"></span></div>
 
 <script>
 (() => {
@@ -348,6 +354,11 @@
     const m = Math.floor(sec / 60), s = sec % 60;
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   };
+  // Nedräkning: avrunda uppåt så full tid visas hela första sekunden
+  // och 00:00 nås exakt när tiden är slut.
+  const fmtDown = (sec) => fmt(Math.ceil(Math.max(0, sec) - 1e-6));
+  // Förfluten tid: avrunda nedåt (00:00 tills första sekunden passerat).
+  const fmtUp = (sec) => fmt(Math.floor(Math.max(0, sec)));
   const RING_C = 2 * Math.PI * 86;
   [$('matchRing'), $('subRing')].forEach(r => { r.style.strokeDasharray = RING_C; });
   const setRing = (el, frac) => { el.style.strokeDashoffset = RING_C * (1 - clamp(frac, 0, 1)); };
@@ -473,7 +484,10 @@
   }
   function releaseWake() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && M.status === 'running') acquireWake();
+    if (document.visibilityState !== 'visible') return;
+    // Ljudkontexten suspenderas när skärmen släcks – väck den, annars blir larmen tysta
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    if (M.status === 'running') acquireWake();
   });
 
   // ---------- Toast ----------
@@ -514,7 +528,9 @@
 
   function buildDots() {
     const d = $('dots'); d.innerHTML = '';
-    const max = Math.min(M.periods, 8);
+    // Fler än 8 perioder får inte plats som prickar – "3 / 12"-pillret räcker då.
+    if (M.periods > 8) return;
+    const max = M.periods;
     for (let i = 0; i < max; i++) {
       const el = document.createElement('div');
       el.className = 'dot';
@@ -532,7 +548,10 @@
   // ---------- Status ----------
   function setStatus(s) {
     M.status = s;
-    $('timerScreen').classList.toggle('is-paused', s === 'paused');
+    // Både "pausad" och "ej startad" dämpar klockorna och visar ett märke
+    const waiting = (s === 'paused' || s === 'ready');
+    $('timerScreen').classList.toggle('is-paused', waiting);
+    if (waiting) $('pausedText').textContent = (s === 'ready') ? 'Ej startad' : 'Pausad';
     if (s === 'running') {
       M.lastTick = Date.now();
       if (!interval) interval = setInterval(tick, 200);
@@ -584,22 +603,29 @@
     flash('matchCard');
     if (M.period < M.periods) {
       setStatus('break');
-      showOverlay(
-        `Period ${M.period} slut`,
-        `Paus före period ${M.period + 1} av ${M.periods}.`,
-        `Starta period ${M.period + 1}`,
-        () => nextPeriod(),
-        'Avsluta match', confirmExit
-      );
+      showBreakOverlay();
     } else {
       setStatus('finished');
-      showOverlay(
-        'Matchen är slut',
-        `${M.periods} perioder × ${cfg.minutes} min spelade.`,
-        'Ny match', () => { show('setupScreen'); hideOverlay(); },
-        'Tillbaka', () => { show('setupScreen'); hideOverlay(); }
-      );
+      showFinishedOverlay();
     }
+  }
+
+  function showBreakOverlay() {
+    showOverlay(
+      `Period ${M.period} slut`,
+      `Paus före period ${M.period + 1} av ${M.periods}.`,
+      `Starta period ${M.period + 1}`, () => nextPeriod(),
+      'Avsluta match', confirmExit
+    );
+  }
+
+  function showFinishedOverlay() {
+    showOverlay(
+      'Matchen är slut',
+      `${M.periods} perioder × ${M.periodLen / 60} min spelade.`,
+      'Ny match', backToSetup,
+      'Tillbaka', backToSetup
+    );
   }
 
   function nextPeriod() {
@@ -624,13 +650,13 @@
 
     // Matchtid (räknar ner mot noll, precis som bytesklockan)
     const mElapsed = M.periodElapsed, mRemain = Math.max(0, M.periodLen - mElapsed);
-    $('matchTime').textContent = fmt(mRemain);
-    $('matchRemain').textContent = 'spelat ' + fmt(mElapsed);
+    $('matchTime').textContent = fmtDown(mRemain);
+    $('matchRemain').textContent = 'spelat ' + fmtUp(mElapsed);
     setRing($('matchRing'), mRemain / M.periodLen);
 
     // Bytesklocka (egen parallell klocka, räknar ner till nästa byte)
     const subRemain = (mRemain <= 0) ? 0 : Math.max(0, M.subLen - M.subElapsed);
-    $('subTime').textContent = fmt(subRemain);
+    $('subTime').textContent = fmtDown(subRemain);
     $('subCount').textContent = 'Byte ' + (M.subCount + 1);
     setRing($('subRing'), subRemain / M.subLen);
   }
@@ -644,8 +670,12 @@
     $('ovSecondary').textContent = secondaryLabel;
     ovPrimaryFn = primaryFn; ovSecondaryFn = secondaryFn;
     $('overlay').classList.add('show');
+    $('timerScreen').classList.add('has-overlay');
   }
-  function hideOverlay() { $('overlay').classList.remove('show'); }
+  function hideOverlay() {
+    $('overlay').classList.remove('show');
+    $('timerScreen').classList.remove('has-overlay');
+  }
   $('ovPrimary').addEventListener('click', () => { ensureAudio(); ovPrimaryFn && ovPrimaryFn(); });
   $('ovSecondary').addEventListener('click', () => { ovSecondaryFn && ovSecondaryFn(); });
 
@@ -691,10 +721,24 @@
     toast('Byte gjort – ny bytesklocka', 'sub', ICO_SUB);
   });
 
+  function backToSetup() { setStatus('idle'); hideOverlay(); show('setupScreen'); }
+
+  // Bekräftelse i appens egen dialog (inte webbläsarens confirm), och
+  // "Tillbaka" återställer exakt det läge man kom ifrån.
   function confirmExit() {
-    if (confirm('Avsluta matchen och gå tillbaka till inställningarna?')) {
-      setStatus('idle'); hideOverlay(); show('setupScreen');
-    }
+    const prev = M.status;
+    if (prev === 'running') setStatus('paused');
+    showOverlay(
+      'Avsluta matchen?',
+      'Matchen avbryts och du kommer tillbaka till inställningarna.',
+      'Avsluta match', backToSetup,
+      'Tillbaka', () => {
+        if (prev === 'running') setStatus('running');
+        else if (prev === 'break') showBreakOverlay();
+        else if (prev === 'finished') showFinishedOverlay();
+        else hideOverlay();
+      }
+    );
   }
   $('exitBtn').addEventListener('click', confirmExit);
   $('startMatchBtn').addEventListener('click', startMatch);
