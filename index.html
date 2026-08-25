@@ -222,11 +222,28 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 @keyframes pop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
 .ov-icon{font-size:46px;margin-bottom:10px}
 .ov-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;margin-bottom:7px}
-.ov-sub{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5}
+.ov-sub{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5;white-space:pre-line}
 .ov-actions{display:flex;flex-direction:column;gap:9px}
 .flash-ov{position:fixed;inset:0;background:rgba(245,197,24,.45);pointer-events:none;opacity:0;z-index:300;transition:opacity .1s}
 .flash-ov.on{opacity:1}
 /* KEEPER PICKER */
+/* MÅLVAKT PER PERIOD */
+.gkplan{background:var(--card);border:1px solid rgba(245,197,24,.3);border-radius:var(--r);padding:13px 14px;margin:14px 0}
+.gkplan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.gkplan-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)}
+.gkplan-even{background:none;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--muted);text-decoration:underline;padding:2px 0;white-space:nowrap}
+.gkplan-even:active{color:var(--accent)}
+.gkplan-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.gkplan-row:last-child{margin-bottom:0}
+.gkplan-lbl{font-size:14px;color:var(--muted);min-width:74px;flex-shrink:0}
+.gkplan-sel{flex:1;min-width:0;height:44px;border-radius:10px;padding:0 34px 0 12px;font-family:'Barlow',sans-serif;font-size:16px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);color:var(--text);-webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 20px,calc(100% - 12px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.gkplan-sel:focus{outline:none;border-color:var(--accent)}
+.gkplan-sel.unset{color:var(--muted);font-weight:400}
+.gkplan-note{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:9px}
+.gkplan-note.warn{color:var(--accent)}
 .keeper-picker-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .keeper-pick-row{display:flex;align-items:center;gap:12px;background:var(--card2);border:2px solid var(--border);border-radius:12px;padding:12px 16px;cursor:pointer;transition:all .15s;touch-action:manipulation}
 .keeper-pick-row:active{transform:scale(.97)}
@@ -430,6 +447,16 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       <span class="count-val" id="activeCount">0</span>
     </div>
     <div class="prematch-players" id="prematchList"></div>
+
+    <div class="gkplan" id="gkPlanBox">
+      <div class="gkplan-head">
+        <span class="gkplan-title">🧤 Målvakt per period</span>
+        <button class="gkplan-even" id="gkPlanEven" onclick="spreadKeeperPlan()">Fördela jämnt</button>
+      </div>
+      <div id="gkPlanRows"></div>
+      <div class="gkplan-note" id="gkPlanNote"></div>
+    </div>
+
     <button class="btn-primary" id="startMatchBtn">▶ STARTA MATCH</button>
   </div>
 </div>
@@ -809,6 +836,7 @@ const EMOJIS=['🔴','🔵','🟡','🟢','🟠','🟣','⚫'];
 let cfgPeriods=3, cfgMins=20, cfgSubMins=5;
 // Match state — benchTime = cumulative seconds on bench this match
 let mp=[], period=1, elapsed=0, running=false, tInt=null;
+let matchKeeperPlan=[];   // målvakt per period, fryst vid matchstart
 let pendingSubs=[], subLog=[], matchTeamId=null, nextSubAt=0, maxSubsPerTrigger=99;
 let PS=1200, SI=300; // period secs, sub interval (overridden by config)
 let totalPeriods=3;
@@ -1074,7 +1102,7 @@ function setCfg(type, el){
   document.querySelectorAll(`#${grp} .cfg-opt`).forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected');
   const val=parseInt(el.dataset.val);
-  if(type==='periods') cfgPeriods=val;
+  if(type==='periods'){ cfgPeriods=val; renderKeeperPlan(); }
   else if(type==='mins') cfgMins=val;
   else if(type==='sub') cfgSubMins=val;
   else if(type==='format') applyFormat(val);
@@ -1106,6 +1134,8 @@ function openPreMatch(teamId){
     </div>`;
   }).join('');
 
+  keeperPlan=[];
+  renderKeeperPlan();
   updateAC(); showScreen('prematch-screen');
 }
 
@@ -1117,6 +1147,7 @@ function cancelP(){}
 function toggleAttendance(el){
   if(el.dataset.keeper==='true') return; // keeper always attends
   el.classList.toggle('active');
+  renderKeeperPlan();
   updateAC();
 }
 
@@ -1142,12 +1173,91 @@ function toggleKeeper(el){
   } else {
     keeperEl=null;
   }
+  keeperPlan[0]=keeperEl?keeperEl.dataset.name:null;
+  renderKeeperPlan();
   updateAC();
 }
 
 function setKeeper(el){ toggleKeeper(el); }
 
 // cycleStyle moved to team edit (cycleRowStyle)
+
+// ── MÅLVAKT PER PERIOD ──
+// keeperPlan[i] = namn på målvakten för period i+1 (null = inte vald).
+// Period 1 hålls synkad med "Målvakt"-knappen i spelarlistan.
+let keeperPlan=[];
+
+function attendingNames(){
+  return [...document.querySelectorAll('#prematchList .prematch-player')]
+    .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'))
+    .map(r=>r.dataset.name);
+}
+
+function renderKeeperPlan(){
+  const names=attendingNames();
+  keeperPlan.length=cfgPeriods;
+  // Släpp val på spelare som inte längre är med
+  for(let i=0;i<cfgPeriods;i++){ if(!names.includes(keeperPlan[i])) keeperPlan[i]=null; }
+  // Period 1 följer målvaktsknappen
+  if(keeperEl && names.includes(keeperEl.dataset.name)) keeperPlan[0]=keeperEl.dataset.name;
+
+  $('gkPlanRows').innerHTML=Array.from({length:cfgPeriods},(_,i)=>{
+    const val=keeperPlan[i]||'';
+    return `<div class="gkplan-row"><span class="gkplan-lbl">Period ${i+1}</span>`+
+      `<select class="gkplan-sel${val?'':' unset'}" data-i="${i}" onchange="setKeeperForPeriod(${i},this.value)">`+
+      `<option value=""${val?'':' selected'}>– välj målvakt –</option>`+
+      names.map(n=>`<option value="${esc(n)}"${n===val?' selected':''}>${esc(n)}</option>`).join('')+
+      `</select></div>`;
+  }).join('');
+
+  // Notis om hur jämnt det blev
+  const picked=keeperPlan.slice(0,cfgPeriods).filter(Boolean);
+  const note=$('gkPlanNote');
+  if(!picked.length){
+    note.textContent='Välj vem som står varje period. Lämnar du en period tom får du frågan under matchen.';
+    note.className='gkplan-note';
+  } else {
+    const counts={}; picked.forEach(n=>counts[n]=(counts[n]||0)+1);
+    const dubbel=Object.keys(counts).filter(n=>counts[n]>1);
+    const tomma=cfgPeriods-picked.length;
+    let txt='', warn=false;
+    if(dubbel.length){ txt=`${dubbel.join(', ')} står ${Math.max(...Object.values(counts))} perioder.`; warn=true; }
+    else txt=`${picked.length} av ${cfgPeriods} perioder planerade – en målvakt var.`;
+    if(tomma) txt+=` ${tomma} period${tomma>1?'er':''} kvar att välja.`;
+    note.textContent=txt; note.className='gkplan-note'+(warn?' warn':'');
+  }
+}
+
+function setKeeperForPeriod(i,name){
+  keeperPlan[i]=name||null;
+  if(i===0) syncKeeperToggle(name);   // håll målvaktsknappen i takt
+  renderKeeperPlan(); updateAC();
+}
+
+// Sätt/ta bort "Målvakt"-markeringen i spelarlistan utan att gå via toggleKeeper
+function syncKeeperToggle(name){
+  document.querySelectorAll('#prematchList .prematch-player').forEach(p=>{
+    const on = !!name && p.dataset.name===name;
+    p.dataset.keeper=on?'true':'false';
+    p.classList.toggle('keeper',on);
+    if(on) p.classList.add('active');
+    p.querySelector('.prematch-toggle').textContent=on?'🧤':'✓';
+    const b=p.querySelector('.keeper-toggle-btn');
+    b.classList.toggle('is-keeper',on);
+    b.textContent=on?'✓ Målvakt':'Målvakt';
+    if(on) keeperEl=p;
+  });
+  if(!name) keeperEl=null;
+}
+
+// Fördela de närvarande jämnt över perioderna
+function spreadKeeperPlan(){
+  const names=attendingNames();
+  if(!names.length) return;
+  keeperPlan=Array.from({length:cfgPeriods},(_,i)=>names[i%names.length]);
+  syncKeeperToggle(keeperPlan[0]);
+  renderKeeperPlan(); updateAC();
+}
 
 function updateAC(){
   const active=document.querySelectorAll('.prematch-player.active,.prematch-player.keeper').length;
@@ -1206,6 +1316,7 @@ function startMatch(){
   startField.forEach(p=>{ p.onField=true; });
   assignPositionsFairly(startField, 0);
 
+  matchKeeperPlan=keeperPlan.slice(0,totalPeriods);   // frys målvaktsplanen för matchen
   period=1; elapsed=0; running=false; pendingSubs=[]; subLog=[]; nextSubAt=SI;
   $('subAlert').classList.remove('show');
   $('ppBtn').textContent='▶';
@@ -1543,20 +1654,30 @@ function periodEnd(){
     $('ovIcon').textContent='🏆'; $('ovTitle').textContent='MATCH SLUT!'; $('ovSub').textContent='Bra kämpat! Speltid sparad.';
     $('ovNextBtn').textContent='📊 SE SPELTID'; $('ovNextBtn').onclick=async()=>{ closeOv(); showTab('stats'); await saveResult(); };
   } else {
+    // Planerad målvakt för nästa period (period är 1-baserad -> index period)
+    const planned=matchKeeperPlan[period];
+    const plannedOk=planned&&mp.some(p=>p.name===planned);
     $('ovIcon').textContent='⏱'; $('ovTitle').textContent=`PERIOD ${period} SLUT`;
-    $('ovSub').textContent=`Drick vatten! ${period===1?'Halvtid!':'Sista perioden!'}`;
+    $('ovSub').textContent=`Drick vatten! ${period===1?'Halvtid!':'Sista perioden!'}`+
+      (plannedOk?`\n🧤 ${planned} står period ${period+1}.`:'');
     $('ovNextBtn').textContent=`▶ STARTA PERIOD ${period+1} av ${totalPeriods}`;
     $('ovNextBtn').onclick=()=>{
       closeOv();
-      // Show keeper picker before starting next period
-      showKeeperPicker(
-        `PERIOD ${period+1} – VEM ÅR MV?`,
-        `Välj målvakt för period ${period+1} av ${totalPeriods}`,
-        (name)=>{
-          if(name) applyNewKeeper(name);
-          nextPeriod();
-        }
-      );
+      if(plannedOk){
+        // Följ planen – fråga inte i onödan
+        applyNewKeeper(planned);
+        nextPeriod();
+      } else {
+        // Ingen plan för perioden: fråga som förut
+        showKeeperPicker(
+          `PERIOD ${period+1} – VEM ÄR MV?`,
+          `Välj målvakt för period ${period+1} av ${totalPeriods}`,
+          (name)=>{
+            if(name) applyNewKeeper(name);
+            nextPeriod();
+          }
+        );
+      }
     };
   }
   $('periodOv').classList.add('show');
