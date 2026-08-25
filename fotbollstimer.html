@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1411">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fotbollstimer">
+<meta name="description" content="Fotbollstimer för 3×20 med bytesklocka var 5:e minut.">
+<title>Fotbollstimer</title>
+<style>
+  :root{
+    --bg:#0b1411;
+    --surface:#14201a;
+    --surface-2:#1b2a22;
+    --border:rgba(255,255,255,.08);
+    --text:#f1f5f3;
+    --muted:#8aa093;
+    --match:#34d399;
+    --sub:#fbbf24;
+    --danger:#f87171;
+    --r:16px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bot:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%,#11201a 0%,#0b1411 60%) fixed;
+    color:var(--text);
+    font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  button:disabled{opacity:.35;cursor:default}
+
+  .app{
+    flex:1;min-height:0;width:100%;max-width:560px;margin:0 auto;
+    padding:calc(10px + var(--safe-top)) 14px calc(12px + var(--safe-bot));
+    display:flex;flex-direction:column;gap:10px;
+  }
+
+  /* ---------- Topprad ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
+  .title{font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted)}
+  .icon-btn{
+    width:40px;height:40px;border-radius:11px;background:var(--surface);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;
+  }
+  .icon-btn:active{background:var(--surface-2)}
+
+  /* ---------- Periodpluppar ---------- */
+  .periods{display:flex;gap:8px;flex-shrink:0}
+  .pdot{
+    flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.10);
+    position:relative;overflow:hidden;
+  }
+  .pdot i{position:absolute;inset:0;width:0;background:var(--match);border-radius:99px;transition:width .3s linear}
+  .pdot.done i{width:100%!important;background:rgba(52,211,153,.45)}
+
+  /* ---------- Klockor ---------- */
+  .clocks{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;position:relative}
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:12px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    position:relative;overflow:hidden;
+  }
+  .card .lbl{
+    font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:7px;
+  }
+  .card .lbl b{color:var(--text);font-weight:700}
+  .dot{width:8px;height:8px;border-radius:99px;flex-shrink:0}
+
+  .card-match{flex:1.35;min-height:0}
+  .card-match .time{color:var(--match)}
+  .card-match .dot{background:var(--match)}
+  .card-sub{flex:1;min-height:0}
+  .card-sub .time{color:var(--sub)}
+  .card-sub .dot{background:var(--sub)}
+
+  .time{
+    font-variant-numeric:tabular-nums;font-feature-settings:"tnum";
+    font-weight:800;line-height:.95;letter-spacing:-2px;
+  }
+  .card-match .time{font-size:clamp(74px,23vw,148px)}
+  .card-sub .time{font-size:clamp(56px,17vw,110px)}
+  .sub-note{font-size:13px;color:var(--muted);margin-top:2px;min-height:18px}
+
+  .bar{position:absolute;left:0;bottom:0;height:4px;width:100%;background:rgba(255,255,255,.07)}
+  .bar i{display:block;height:100%;width:100%;transform-origin:left;background:currentColor;transition:transform .25s linear}
+  .card-match .bar{color:var(--match)}
+  .card-sub .bar{color:var(--sub)}
+
+  .card.flash::after{
+    content:'';position:absolute;inset:0;opacity:0;
+    animation:flash 1s ease-out 3;pointer-events:none;border-radius:var(--r);
+  }
+  .card-match.flash::after{background:var(--match)}
+  .card-sub.flash::after{background:var(--sub)}
+  @keyframes flash{0%{opacity:.22}100%{opacity:0}}
+  .card.paused .time{opacity:.45}
+
+  /* ---------- Knappar ---------- */
+  .controls{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .primary{
+    width:100%;padding:18px;border-radius:var(--r);font-size:19px;font-weight:800;letter-spacing:.5px;
+    background:var(--match);color:#06210f;
+  }
+  .primary:active{transform:scale(.985)}
+  .primary.pause{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+  .primary.sub-cta{background:var(--sub);color:#2a1c00}
+  .row{display:flex;gap:8px}
+  .row button{
+    flex:1 1 0;min-width:0;padding:13px 4px;border-radius:12px;
+    background:var(--surface);border:1px solid var(--border);
+    font-size:clamp(11.5px,3.1vw,13.5px);font-weight:600;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .row button:active{background:var(--surface-2);color:var(--text)}
+  .row button.warn:active{color:var(--danger)}
+
+  /* ---------- Inställningar ---------- */
+  .sheet{
+    position:fixed;inset:0;background:rgba(4,10,8,.72);backdrop-filter:blur(3px);
+    display:none;align-items:flex-end;justify-content:center;z-index:20;
+  }
+  .sheet.open{display:flex}
+  .sheet-inner{
+    width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);
+    border-radius:20px 20px 0 0;padding:18px 16px calc(20px + var(--safe-bot));
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .sheet h2{font-size:17px;font-weight:800}
+  .step{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .step-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .step-txt span{font-size:15px;font-weight:600}
+  .step-txt small{font-size:12px;color:var(--muted)}
+  .step-ctl{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .step-ctl button{
+    width:42px;height:42px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);
+    font-size:21px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .step-ctl button:active:not(:disabled){background:#24382d}
+  .step-val{min-width:62px;text-align:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+  .step-val small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px}
+  .sheet-hint{font-size:12.5px;color:var(--muted);line-height:1.45}
+  .sheet-close{
+    padding:15px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);
+    font-size:16px;font-weight:700;text-align:center;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:absolute;left:50%;top:8px;transform:translate(-50%,-12px);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+    padding:11px 16px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;z-index:30;max-width:90vw;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:340px){ .wide{display:none} }
+  @media (max-height:620px){
+    .card-match .time{font-size:clamp(54px,16vw,88px)}
+    .card-sub .time{font-size:clamp(42px,12vw,68px)}
+    .primary{padding:15px;font-size:17px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="title">Fotbollstimer</div>
+    <button class="icon-btn" id="openSettings" aria-label="Inställningar">⚙</button>
+  </header>
+
+  <div class="periods" id="periods"></div>
+
+  <div class="clocks">
+    <section class="card card-match" id="matchCard">
+      <div class="lbl"><i class="dot"></i><span id="matchLbl">Period 1 av 3</span></div>
+      <div class="time" id="matchTime">20:00</div>
+      <div class="sub-note" id="matchNote">3 × 20 min</div>
+      <div class="bar"><i id="matchBar"></i></div>
+    </section>
+
+    <section class="card card-sub" id="subCard">
+      <div class="lbl"><i class="dot"></i><span>Nästa byte</span></div>
+      <div class="time" id="subTime">5:00</div>
+      <div class="sub-note" id="subNote">Byte var 5:e minut</div>
+      <div class="bar"><i id="subBar"></i></div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="primaryBtn">Starta period 1</button>
+    <div class="row">
+      <button id="subBtn">↻ Byte gjort</button>
+      <button id="endPeriodBtn">Avsluta<span class="wide"> period</span></button>
+      <button id="resetBtn" class="warn">✕ Nollställ</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-inner">
+    <h2>Inställningar</h2>
+
+    <div class="step" id="st-periods">
+      <div class="step-txt"><span>Perioder</span><small>Antal perioder i matchen</small></div>
+      <div class="step-ctl">
+        <button data-act="dec" aria-label="Färre perioder">−</button>
+        <div class="step-val"><span id="v-periods">3</span><small>st</small></div>
+        <button data-act="inc" aria-label="Fler perioder">+</button>
+      </div>
+    </div>
+
+    <div class="step" id="st-minutes">
+      <div class="step-txt"><span>Periodlängd</span><small>Minuter per period</small></div>
+      <div class="step-ctl">
+        <button data-act="dec" aria-label="Kortare period">−</button>
+        <div class="step-val"><span id="v-minutes">20</span><small>min</small></div>
+        <button data-act="inc" aria-label="Längre period">+</button>
+      </div>
+    </div>
+
+    <div class="step" id="st-sub">
+      <div class="step-txt"><span>Bytesintervall</span><small>Minuter mellan byten</small></div>
+      <div class="step-ctl">
+        <button data-act="dec" aria-label="Kortare bytesintervall">−</button>
+        <div class="step-val"><span id="v-sub">5</span><small>min</small></div>
+        <button data-act="inc" aria-label="Längre bytesintervall">+</button>
+      </div>
+    </div>
+
+    <div class="step" id="st-sound">
+      <div class="step-txt"><span>Ljud &amp; vibration</span><small>Signal vid byte och periodslut</small></div>
+      <div class="step-ctl">
+        <button id="soundToggle" style="width:auto;padding:0 16px;font-size:15px;font-weight:700">På</button>
+      </div>
+    </div>
+
+    <p class="sheet-hint" id="sheetHint">Perioder och periodlängd kan ändras innan matchen startar. Bytesintervallet går att ändra när som helst.</p>
+    <button class="sheet-close" id="closeSettings">Klar</button>
+  </div>
+</div>
+
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+  // Nedräkning avrundas uppåt: full tid visas hela första sekunden och
+  // 00:00 nås exakt när tiden är ute.
+  const fmt = (sec) => {
+    const t = Math.max(0, Math.ceil(sec - 1e-6));
+    return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  };
+
+  // ---------- Inställningar ----------
+  const LIMITS = { periods: [1, 6], minutes: [1, 45], sub: [1, 20] };
+  const DEFAULTS = { periods: 3, minutes: 20, sub: 5, sound: true };
+  const KEY = 'fotbollstimer.cfg';
+
+  let cfg = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (s && s.periods) return {
+        periods: clamp(s.periods, ...LIMITS.periods),
+        minutes: clamp(s.minutes, ...LIMITS.minutes),
+        sub: clamp(s.sub, ...LIMITS.sub),
+        sound: s.sound !== false,
+      };
+    } catch (e) {}
+    return { ...DEFAULTS };
+  })();
+  const saveCfg = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} };
+
+  const periodSec = () => cfg.minutes * 60;
+  const subSec = () => cfg.sub * 60;
+
+  // ---------- Matchtillstånd ----------
+  // phase: 'idle' | 'running' | 'paused' | 'break' (period slut, fler kvar) | 'done'
+  const S = { phase: 'idle', period: 0, pRem: 0, sRem: 0, subs: 0 };
+
+  function resetMatch() {
+    S.phase = 'idle'; S.period = 0; S.subs = 0;
+    S.pRem = periodSec(); S.sRem = subSec();
+    stopTicking(); releaseWake();
+    render();
+  }
+
+  function startPeriod() {
+    S.pRem = periodSec();
+    S.sRem = subSec();
+    S.subs = 0;
+    S.phase = 'running';
+    startTicking(); requestWake();
+    render();
+  }
+
+  function setRunning(on) {
+    if (on) { S.phase = 'running'; startTicking(); requestWake(); }
+    else { S.phase = 'paused'; stopTicking(); releaseWake(); }
+    render();
+  }
+
+  function endPeriod() {
+    stopTicking();
+    S.pRem = 0;
+    if (S.period + 1 < cfg.periods) { S.phase = 'break'; releaseWake(); }
+    else { S.phase = 'done'; releaseWake(); }
+    render();
+  }
+
+  function nextPeriod() {
+    S.period = Math.min(S.period + 1, cfg.periods - 1);
+    startPeriod();
+  }
+
+  function markSub() {
+    S.sRem = subSec();
+    S.subs++;
+    flash($('subCard'));
+    haptic(12);
+    toast('Byte ' + S.subs + ' · nästa om ' + cfg.sub + ' min');
+    render();
+  }
+
+  // ---------- Tickande klocka ----------
+  // Räknar på faktisk tid (Date.now) så att bakgrundsflikar och strypta
+  // timers inte får klockan att sacka efter.
+  let timer = null, last = 0;
+
+  function startTicking() {
+    last = Date.now();
+    if (timer) return;
+    timer = setInterval(tick, 200);
+  }
+  function stopTicking() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+  function tick() {
+    const now = Date.now();
+    const dt = Math.max(0, (now - last) / 1000);
+    last = now;
+    if (S.phase !== 'running' || dt === 0) return;
+
+    S.pRem -= dt;
+    S.sRem -= dt;
+
+    if (S.pRem <= 0) {              // Periodslut vinner över bytessignalen
+      S.pRem = 0;
+      periodAlarm();
+      endPeriod();
+      return;
+    }
+
+    if (S.sRem <= 0) {
+      // Hoppa fram hela intervall om appen varit vilande en längre stund
+      while (S.sRem <= 0) { S.sRem += subSec(); S.subs++; }
+      subAlarm();
+    }
+    render();
+  }
+
+  // ---------- Signaler ----------
+  let ac = null;
+  function audio() {
+    if (!cfg.sound) return null;
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    } catch (e) { return null; }
+  }
+  function beep(freq, at, dur, vol) {
+    const c = audio(); if (!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    const t = c.currentTime + at;
+    o.type = 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+  function haptic(ms) {
+    if (!cfg.sound) return;
+    try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {}
+  }
+  function subAlarm() {
+    beep(880, 0, 0.16, 0.25); beep(880, 0.24, 0.16, 0.25); beep(1175, 0.48, 0.30, 0.25);
+    haptic([0, 140, 90, 140, 90, 260]);
+    flash($('subCard'));
+    toast('Dags för byte!');
+  }
+  function periodAlarm() {
+    for (let i = 0; i < 3; i++) beep(660, i * 0.42, 0.34, 0.30);
+    beep(440, 1.30, 0.75, 0.30);
+    haptic([0, 320, 140, 320, 140, 620]);
+    flash($('matchCard'));
+  }
+  function flash(el) {
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 3200);
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ---------- Håll skärmen tänd ----------
+  let wake = null;
+  async function requestWake() {
+    try {
+      if ('wakeLock' in navigator && !wake) {
+        wake = await navigator.wakeLock.request('screen');
+        wake.addEventListener('release', () => { wake = null; });
+      }
+    } catch (e) {}
+  }
+  function releaseWake() { try { wake && wake.release(); } catch (e) {} wake = null; }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (S.phase === 'running') { tick(); requestWake(); }
+  });
+
+  // ---------- Rendering ----------
+  function render() {
+    const running = S.phase === 'running';
+    const started = S.phase !== 'idle';
+
+    // Periodpluppar
+    const pw = $('periods');
+    if (pw.children.length !== cfg.periods) {
+      pw.innerHTML = Array.from({ length: cfg.periods }, () => '<div class="pdot"><i></i></div>').join('');
+    }
+    [...pw.children].forEach((d, i) => {
+      const past = i < S.period || (S.phase === 'done' && i <= S.period);
+      d.classList.toggle('done', past);
+      const frac = i === S.period && S.phase !== 'done' && started
+        ? 1 - S.pRem / periodSec() : (past ? 1 : 0);
+      d.firstElementChild.style.width = (frac * 100).toFixed(1) + '%';
+    });
+
+    // Matchklockan
+    $('matchLbl').textContent = 'Period ' + (S.period + 1) + ' av ' + cfg.periods;
+    $('matchTime').textContent = fmt(S.pRem);
+    $('matchBar').style.transform = 'scaleX(' + (S.pRem / periodSec()).toFixed(4) + ')';
+    $('matchCard').classList.toggle('paused', S.phase === 'paused');
+
+    const spelad = S.period * cfg.minutes + Math.floor((periodSec() - S.pRem) / 60);
+    $('matchNote').textContent =
+      S.phase === 'idle' ? cfg.periods + ' × ' + cfg.minutes + ' min'
+      : S.phase === 'break' ? 'Period ' + (S.period + 1) + ' slut · paus'
+      : S.phase === 'done' ? 'Matchen slut · ' + cfg.periods * cfg.minutes + ' min spelade'
+      : spelad + ' av ' + cfg.periods * cfg.minutes + ' min spelade';
+
+    // Bytesklockan
+    const subActive = running || S.phase === 'paused';
+    $('subTime').textContent = fmt(subActive ? S.sRem : subSec());
+    $('subBar').style.transform = 'scaleX(' + ((subActive ? S.sRem : subSec()) / subSec()).toFixed(4) + ')';
+    $('subCard').classList.toggle('paused', !running && started);
+    $('subNote').textContent = !started ? 'Byte var ' + cfg.sub + ':e minut'
+      : S.subs === 0 ? 'Inga byten än den här perioden'
+      : S.subs + (S.subs === 1 ? ' byte' : ' byten') + ' den här perioden';
+
+    // Knappar
+    const btn = $('primaryBtn');
+    btn.className = 'primary';
+    if (S.phase === 'idle') btn.textContent = '▶ Starta period 1';
+    else if (running) { btn.textContent = '⏸ Paus'; btn.classList.add('pause'); }
+    else if (S.phase === 'paused') btn.textContent = '▶ Fortsätt';
+    else if (S.phase === 'break') btn.textContent = '▶ Starta period ' + (S.period + 2);
+    else btn.textContent = '↺ Ny match';
+
+    $('subBtn').disabled = !subActive;
+    $('endPeriodBtn').disabled = !subActive;
+    $('resetBtn').disabled = S.phase === 'idle';
+
+    renderSettings();
+  }
+
+  function renderSettings() {
+    $('v-periods').textContent = cfg.periods;
+    $('v-minutes').textContent = cfg.minutes;
+    $('v-sub').textContent = cfg.sub;
+    $('soundToggle').textContent = cfg.sound ? 'På' : 'Av';
+    $('soundToggle').style.color = cfg.sound ? 'var(--match)' : 'var(--muted)';
+
+    const locked = S.phase !== 'idle';
+    lim('st-periods', cfg.periods, LIMITS.periods, locked);
+    lim('st-minutes', cfg.minutes, LIMITS.minutes, locked);
+    lim('st-sub', cfg.sub, LIMITS.sub, false);
+    $('sheetHint').textContent = locked
+      ? 'Matchen är igång – nollställ för att ändra perioder och periodlängd. Bytesintervallet gäller från nästa byte.'
+      : 'Perioder och periodlängd kan ändras innan matchen startar. Bytesintervallet går att ändra när som helst.';
+  }
+  function lim(id, val, [lo, hi], locked) {
+    const el = $(id);
+    el.querySelector('[data-act=dec]').disabled = locked || val <= lo;
+    el.querySelector('[data-act=inc]').disabled = locked || val >= hi;
+  }
+
+  // ---------- Händelser ----------
+  $('primaryBtn').addEventListener('click', () => {
+    audio();                                   // lås upp ljudet på första trycket
+    haptic(10);
+    if (S.phase === 'idle') startPeriod();
+    else if (S.phase === 'running') setRunning(false);
+    else if (S.phase === 'paused') setRunning(true);
+    else if (S.phase === 'break') nextPeriod();
+    else resetMatch();
+  });
+
+  $('subBtn').addEventListener('click', markSub);
+
+  $('endPeriodBtn').addEventListener('click', () => {
+    if (!confirm('Avsluta period ' + (S.period + 1) + ' nu?')) return;
+    haptic(10); endPeriod();
+  });
+
+  $('resetBtn').addEventListener('click', () => {
+    if (!confirm('Nollställ matchen?')) return;
+    haptic(10); resetMatch(); toast('Nollställd');
+  });
+
+  // Steppers, med håll-in för att repetera
+  const stepMap = { 'st-periods': 'periods', 'st-minutes': 'minutes', 'st-sub': 'sub' };
+  Object.keys(stepMap).forEach(id => {
+    $(id).querySelectorAll('button').forEach(btn => {
+      const key = stepMap[id], dir = btn.dataset.act === 'inc' ? 1 : -1;
+      let rep = null, n = 0;
+      const apply = () => {
+        cfg[key] = clamp(cfg[key] + dir, ...LIMITS[key]);
+        saveCfg();
+        if (S.phase === 'idle') { S.pRem = periodSec(); S.sRem = subSec(); }
+        haptic(6); render();
+      };
+      const stop = () => { clearTimeout(rep); rep = null; };
+      const start = (e) => {
+        e.preventDefault();
+        if (btn.disabled) return;
+        apply(); n = 0;
+        const loop = () => {
+          if (btn.disabled) return stop();
+          apply(); n++;
+          rep = setTimeout(loop, Math.max(70, 460 - n * 55));
+        };
+        rep = setTimeout(loop, 460);
+      };
+      btn.addEventListener('pointerdown', start);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+    });
+  });
+
+  $('soundToggle').addEventListener('click', () => {
+    cfg.sound = !cfg.sound; saveCfg();
+    if (cfg.sound) { audio(); beep(880, 0, 0.12, 0.2); haptic(10); }
+    renderSettings();
+  });
+
+  $('openSettings').addEventListener('click', () => { renderSettings(); $('sheet').classList.add('open'); });
+  $('closeSettings').addEventListener('click', () => $('sheet').classList.remove('open'));
+  $('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) $('sheet').classList.remove('open'); });
+
+  // Mellanslag = start/paus på laptop
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); $('primaryBtn').click(); }
+    else if (e.key.toLowerCase() === 'b' && !$('subBtn').disabled) markSub();
+  });
+
+  resetMatch();
+})();
+</script>
+</body>
+</html>
