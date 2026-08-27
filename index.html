@@ -125,6 +125,29 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .lock-chip.short{border-color:var(--danger);color:var(--danger)}
 .lock-chip.rest{border-color:rgba(74,222,128,.45);color:var(--on)}
 .lock-sum-note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+/* Bytesschema */
+.plan-card{max-width:440px;width:94vw}
+.plan-body{max-height:58vh;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:left;margin-bottom:16px}
+.plan-per{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--accent);margin:14px 0 7px;display:flex;align-items:center;gap:8px}
+.plan-per:first-child{margin-top:0}
+.plan-start{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:8px}
+.plan-start b{color:var(--text);font-weight:600}
+.plan-sub{display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:14px}
+.plan-time{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--accent);
+  min-width:38px;flex-shrink:0}
+.plan-swap{flex:1;min-width:0;line-height:1.4}
+.plan-swap .in{color:var(--on);font-weight:600}
+.plan-swap .out{color:var(--muted)}
+.plan-pos{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
+  color:var(--muted);background:rgba(255,255,255,.06);border-radius:5px;padding:2px 6px;flex-shrink:0}
+.plan-none{font-size:13px;color:var(--muted);padding:4px 0 8px}
+.plan-tot{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.plan-tot-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:1.4px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.plan-tot-row{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:3px 0}
+.plan-tot-row span:last-child{color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700}
 .ptag{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:4px}
 .tk{background:var(--accent);color:#111}
 .ta{background:rgba(74,222,128,.2);color:var(--on)}
@@ -172,14 +195,34 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .abort-btn:active{background:rgba(230,57,70,.3);transform:scale(.95)}
 .match-header{background:var(--grass);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;overflow:hidden}
 .match-header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 56px,rgba(255,255,255,.07) 56px,rgba(255,255,255,.07) 58px);pointer-events:none}
-.period-badge{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.75);text-transform:uppercase;position:relative}
+.period-badge{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:rgba(255,255,255,.75);text-transform:uppercase;position:relative;white-space:nowrap}
 .timer-wrap{text-align:center;position:relative}
 .timer-big{font-family:'Barlow Condensed',sans-serif;font-size:50px;font-weight:900;line-height:1;color:#fff;letter-spacing:-1px;transition:color .3s}
 .timer-big.warn{color:var(--accent);animation:py 1s ease-in-out infinite}
 .timer-big.hot{color:var(--danger);animation:pr .5s ease-in-out infinite}
 @keyframes py{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes pr{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.06)}}
-.next-sub-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.45);text-transform:uppercase;margin-top:1px}
+.next-sub-label{display:inline-flex;align-items:center;gap:7px;margin-top:4px;padding:3px 11px;
+  border-radius:999px;background:rgba(245,197,24,.16);border:1px solid rgba(245,197,24,.5)}
+.nsl-txt{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.6px;
+  text-transform:uppercase;color:rgba(245,197,24,.85)}
+.nsl-time{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:900;line-height:1;
+  color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:.5px}
+/* Sista minuten: byt till rött och pulsera */
+.next-sub-label.soon{background:rgba(230,57,70,.18);border-color:rgba(230,57,70,.6);animation:nslPulse 1s ease-in-out infinite}
+.next-sub-label.soon .nsl-txt{color:rgba(255,150,155,.9)}
+.next-sub-label.soon .nsl-time{color:#ff6b74}
+@keyframes nslPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+/* Mycket smala skärmar: korta ned så headern får plats på en rad */
+@media (max-width:345px){
+  .period-badge{font-size:11px;letter-spacing:.4px}
+  .nsl-txt{display:none}
+  .next-sub-label{padding:3px 9px;gap:0}
+  .match-header{padding:10px 9px}
+  .timer-big{font-size:40px}
+  .match-ctrl{gap:5px}
+  .ctrl-btn,.abort-btn{width:36px;height:36px;font-size:16px}
+}
 .match-ctrl{display:flex;gap:8px;position:relative}
 .ctrl-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-size:18px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
 .ctrl-btn:active{background:rgba(255,255,255,.25);transform:scale(.95)}
@@ -485,7 +528,19 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       <div class="gkplan-note" id="gkPlanNote"></div>
     </div>
 
+    <button class="btn-secondary" id="previewPlanBtn" onclick="showSubPlan()">👁 SE BYTESSCHEMA</button>
+    <div style="height:10px"></div>
     <button class="btn-primary" id="startMatchBtn">▶ STARTA MATCH</button>
+  </div>
+</div>
+
+<!-- BYTESSCHEMA (förhandsvisning) -->
+<div class="overlay" id="planOv">
+  <div class="ov-card plan-card">
+    <div class="ov-title">BYTESSCHEMA</div>
+    <div class="ov-sub" id="planOvSub"></div>
+    <div class="plan-body" id="planBody"></div>
+    <button class="btn-primary" onclick="document.getElementById('planOv').classList.remove('show')">STÄNG</button>
   </div>
 </div>
 
@@ -498,7 +553,10 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
     </div>
     <div class="timer-wrap">
       <div class="timer-big" id="timerBig">20:00</div>
-      <div class="next-sub-label" id="nextSubLabel">NÄSTA BYTE: 15:00</div>
+      <div class="next-sub-label" id="nextSubLabel">
+        <span class="nsl-txt" id="nextSubTxt">Nästa byte</span>
+        <span class="nsl-time" id="nextSubTime">15:00</span>
+      </div>
     </div>
     <div class="match-ctrl">
       <button class="ctrl-btn" id="ppBtn">▶</button>
@@ -600,7 +658,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 const $=id=>document.getElementById(id);
 // ── VERSION ──
 // Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
-const APP_VERSION='1.1';
+const APP_VERSION='1.2';
 const APP_BUILD='2026-08-27';
 
 // ── SUPABASE ──
@@ -1184,38 +1242,47 @@ function endP(){}
 function cancelP(){}
 
 function toggleAttendance(el){
-  if(el.dataset.keeper==='true') return; // keeper always attends
+  if(keeperPlan.includes(el.dataset.name)) return; // planerad målvakt spelar alltid
   el.classList.toggle('active');
   renderKeeperPlan();
   renderLockSummary();
   updateAC();
 }
 
+// Varje tryck fyller nästa lediga period: första namnet blir målvakt period 1,
+// nästa period 2 och så vidare. Tryck igen på samma spelare tar bort valet.
 function toggleKeeper(el){
-  const wasKeeper = el.dataset.keeper==='true';
-  // Clear any existing keeper
-  document.querySelectorAll('.prematch-player').forEach(p=>{
-    if(p.dataset.keeper==='true'){
-      p.dataset.keeper='false';
-      p.classList.remove('keeper');
-      p.querySelector('.prematch-toggle').textContent='✓';
-      p.querySelector('.keeper-toggle-btn').classList.remove('is-keeper');
-      p.querySelector('.keeper-toggle-btn').textContent='Målvakt';
-    }
-  });
-  if(!wasKeeper){
-    el.dataset.keeper='true';
-    el.classList.add('keeper','active');
-    el.querySelector('.prematch-toggle').textContent='🧤';
-    el.querySelector('.keeper-toggle-btn').classList.add('is-keeper');
-    el.querySelector('.keeper-toggle-btn').textContent='✓ Målvakt';
-    keeperEl=el;
+  const name=el.dataset.name;
+  const at=keeperPlan.indexOf(name);
+  if(at!==-1){
+    keeperPlan[at]=null;
   } else {
-    keeperEl=null;
+    let slot=-1;
+    for(let k=0;k<cfgPeriods;k++){ if(!keeperPlan[k]){ slot=k; break; } }
+    if(slot===-1) slot=cfgPeriods-1;   // alla perioder fyllda -> ersätt den sista
+    keeperPlan[slot]=name;
   }
-  keeperPlan[0]=keeperEl?keeperEl.dataset.name:null;
+  syncKeeperButtons();
   renderKeeperPlan();
+  renderLockSummary();
   updateAC();
+}
+
+// Knapparna i spelarlistan speglar målvaktsplanen
+function syncKeeperButtons(){
+  const rows=[...document.querySelectorAll('#prematchList .prematch-player')];
+  rows.forEach(p=>{
+    const idx=keeperPlan.indexOf(p.dataset.name);
+    const isFirst=keeperPlan[0]===p.dataset.name;
+    p.dataset.keeper=isFirst?'true':'false';
+    p.classList.toggle('keeper', idx!==-1);
+    if(idx!==-1) p.classList.add('active');
+    p.querySelector('.prematch-toggle').textContent=idx!==-1?'🧤':'✓';
+    const b=p.querySelector('.keeper-toggle-btn');
+    b.classList.toggle('is-keeper', idx!==-1);
+    b.textContent=idx!==-1?`✓ MV ${idx+1}`:'Målvakt';
+  });
+  keeperEl=rows.find(p=>p.dataset.keeper==='true')||null;
 }
 
 function setKeeper(el){ toggleKeeper(el); }
@@ -1303,6 +1370,80 @@ function renderLockSummary(){
   }
 }
 
+// ── BYTESSCHEMA: simulera matchen i förväg ──
+// Kör samma urval, positionsfördelning och bytesparning som under matchen,
+// på kopior av spelarna. Ger en prognos – verkligheten kan avvika något
+// eftersom appen slumpar lite vid lika lägen.
+function simulateSubs(){
+  const rows=[...document.querySelectorAll('#prematchList .prematch-player')]
+    .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'));
+  const sim=rows.map(r=>({name:r.dataset.name,style:r.dataset.style||'neutral',
+    lines:(r.dataset.lines||'').split(',').filter(Boolean),
+    playtime:0,benchTime:0,onField:false,posKey:null,posHistory:[],isKeeper:false}));
+  const PSs=cfgMins*60, SIs=cfgSubMins*60;
+  const posLb=id=>POS.find(q=>q.id===id)?.lb||'';
+  const blocks=[];
+
+  for(let per=1; per<=cfgPeriods; per++){
+    const gkName=keeperPlan[per-1]||keeperPlan[0]||null;
+    sim.forEach(p=>{ p.isKeeper=(p.name===gkName); p.onField=p.isKeeper; p.posKey=p.isKeeper?'GK':null; });
+    const outs=sim.filter(p=>!p.isKeeper);
+    const field=pickFieldWithLocks(outs, OFP.length);
+    outs.forEach(p=>{ p.onField=field.includes(p); p.posKey=null; });
+    assignPositionsFairly(field, 0);
+    const block={per, gk:gkName,
+      start:field.map(p=>({name:p.name,pos:posLb(p.posKey)})),
+      bench:outs.filter(p=>!p.onField).map(p=>p.name), subs:[]};
+
+    let t=0;
+    while(t<PSs){
+      const step=Math.min(SIs, PSs-t);
+      sim.forEach(p=>{ if(p.onField) p.playtime+=step; else if(!p.isKeeper) p.benchTime+=step; });
+      t+=step;
+      if(t>=PSs) break;                       // periodslut, inget byte
+      const bench=sim.filter(p=>!p.isKeeper&&!p.onField);
+      if(!bench.length) continue;             // full trupp på plan
+      const fieldNow=fairSort(sim.filter(p=>!p.isKeeper&&p.onField), p=>-p.playtime);
+      const bSorted=fairSort(bench, p=>-p.benchTime);
+      const n=Math.min(bench.length, fieldNow.length, maxSubsPerTrigger===99?bench.length:maxSubsPerTrigger);
+      const pairs=pairSubsWithLocks(fieldNow, bSorted, n);
+      if(!pairs.length) continue;
+      pairs.forEach(s=>{ const pk=s.out.posKey;
+        s.out.onField=false; s.out.posKey=null; s.in.onField=true; s.in.posKey=pk; });
+      assignPositionsFairly(sim.filter(p=>!p.isKeeper&&p.onField), t);
+      block.subs.push({min:Math.round(t/60), pairs:pairs.map(s=>({out:s.out.name,in:s.in.name,pos:posLb(s.in.posKey)}))});
+    }
+    blocks.push(block);
+  }
+  const totals=sim.map(p=>({name:p.name,min:Math.round(p.playtime/60)})).sort((a,b)=>b.min-a.min);
+  return {blocks,totals};
+}
+
+function showSubPlan(){
+  const rows=[...document.querySelectorAll('#prematchList .prematch-player')]
+    .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'));
+  if(rows.length<cfgFormat){ alert(`Du behöver minst ${cfgFormat} spelare för ${cfgFormat}v${cfgFormat}.`); return; }
+  if(!keeperPlan[0]){ alert('Välj målvakt först, så kan schemat räknas ut.'); return; }
+
+  const {blocks,totals}=simulateSubs();
+  $('planOvSub').textContent=`${cfgPeriods} × ${cfgMins} min · byte var ${cfgSubMins}:e minut · prognos, kan avvika något`;
+  $('planBody').innerHTML=blocks.map(b=>
+    `<div class="plan-per">Period ${b.per}${b.gk?` · 🧤 ${esc(b.gk)}`:''}</div>`+
+    `<div class="plan-start"><b>Start:</b> ${b.start.map(s=>`${esc(s.name)} (${s.pos})`).join(', ')}`+
+    (b.bench.length?`<br><b>Bänk:</b> ${b.bench.map(esc).join(', ')}`:'')+`</div>`+
+    (b.subs.length
+      ? b.subs.map(s=>s.pairs.map(pr=>
+          `<div class="plan-sub"><span class="plan-time">${s.min}′</span>`+
+          `<span class="plan-swap"><span class="in">↑ ${esc(pr.in)}</span> för <span class="out">${esc(pr.out)}</span></span>`+
+          `<span class="plan-pos">${pr.pos}</span></div>`).join('')).join('')
+      : '<div class="plan-none">Inga byten – hela truppen står på plan.</div>')
+  ).join('')+
+  `<div class="plan-tot"><div class="plan-tot-title">Beräknad speltid</div>`+
+  totals.map(t=>`<div class="plan-tot-row"><span>${esc(t.name)}</span><span>${t.min} min</span></div>`).join('')+
+  `</div>`;
+  $('planOv').classList.add('show');
+}
+
 // ── MÅLVAKT PER PERIOD ──
 // keeperPlan[i] = namn på målvakten för period i+1 (null = inte vald).
 // Period 1 hålls synkad med "Målvakt"-knappen i spelarlistan.
@@ -1319,8 +1460,6 @@ function renderKeeperPlan(){
   keeperPlan.length=cfgPeriods;
   // Släpp val på spelare som inte längre är med
   for(let i=0;i<cfgPeriods;i++){ if(!names.includes(keeperPlan[i])) keeperPlan[i]=null; }
-  // Period 1 följer målvaktsknappen
-  if(keeperEl && names.includes(keeperEl.dataset.name)) keeperPlan[0]=keeperEl.dataset.name;
 
   $('gkPlanRows').innerHTML=Array.from({length:cfgPeriods},(_,i)=>{
     const val=keeperPlan[i]||'';
@@ -1351,24 +1490,8 @@ function renderKeeperPlan(){
 
 function setKeeperForPeriod(i,name){
   keeperPlan[i]=name||null;
-  if(i===0) syncKeeperToggle(name);   // håll målvaktsknappen i takt
+  syncKeeperButtons();                // håll målvaktsknapparna i takt
   renderKeeperPlan(); updateAC();
-}
-
-// Sätt/ta bort "Målvakt"-markeringen i spelarlistan utan att gå via toggleKeeper
-function syncKeeperToggle(name){
-  document.querySelectorAll('#prematchList .prematch-player').forEach(p=>{
-    const on = !!name && p.dataset.name===name;
-    p.dataset.keeper=on?'true':'false';
-    p.classList.toggle('keeper',on);
-    if(on) p.classList.add('active');
-    p.querySelector('.prematch-toggle').textContent=on?'🧤':'✓';
-    const b=p.querySelector('.keeper-toggle-btn');
-    b.classList.toggle('is-keeper',on);
-    b.textContent=on?'✓ Målvakt':'Målvakt';
-    if(on) keeperEl=p;
-  });
-  if(!name) keeperEl=null;
 }
 
 // Fördela de närvarande jämnt över perioderna
@@ -1376,7 +1499,7 @@ function spreadKeeperPlan(){
   const names=attendingNames();
   if(!names.length) return;
   keeperPlan=Array.from({length:cfgPeriods},(_,i)=>names[i%names.length]);
-  syncKeeperToggle(keeperPlan[0]);
+  syncKeeperButtons();
   renderKeeperPlan(); updateAC();
 }
 
@@ -1385,8 +1508,13 @@ function updateAC(){
   const hasK=!!document.querySelector('.prematch-player.keeper');
   const cv=$('activeCount'); cv.textContent=active; cv.className='count-val '+(active>=7&&hasK?'ok':'bad');
   const ks=$('keeperStatus');
-  ks.textContent=hasK?`✓ Målvakt: ${keeperEl?.dataset.name||''}`:'⚠ Välj målvakt';
-  ks.style.color=hasK?'var(--on)':'var(--accent)';
+  const planned=keeperPlan.slice(0,cfgPeriods);
+  const filled=planned.filter(Boolean).length;
+  if(!hasK){ ks.textContent='⚠ Välj målvakt'; ks.style.color='var(--accent)'; }
+  else {
+    ks.textContent=`✓ Målvakt: ${planned.map((n,i)=>`${i+1}. ${n||'–'}`).join(' · ')}`;
+    ks.style.color=filled<cfgPeriods?'var(--accent)':'var(--on)';
+  }
 }
 
 $('prematchBackBtn').onclick=()=>showScreen('home-screen');
@@ -1653,8 +1781,17 @@ function updTD(){
   const el=$('timerBig'); el.textContent=`${m}:${s.toString().padStart(2,'0')}`;
   const sus=nextSubAt-elapsed;
   el.className='timer-big'+(pendingSubs.length?' hot':sus<=60?' warn':'');
-  if(nextSubAt<=PS){ const nm=Math.floor(sus/60),ns=sus%60; $('nextSubLabel').textContent=`NÄSTA BYTE: ${nm}:${ns.toString().padStart(2,'0')}`; }
-  else $('nextSubLabel').textContent=`Period ${period} / 3`;
+  const nsl=$('nextSubLabel');
+  if(nextSubAt<=PS){
+    const nm=Math.floor(sus/60),ns=sus%60;
+    $('nextSubTxt').textContent='Nästa byte';
+    $('nextSubTime').textContent=`${nm}:${ns.toString().padStart(2,'0')}`;
+    nsl.classList.toggle('soon', sus<=60 && sus>0);
+  } else {
+    $('nextSubTxt').textContent='Period';
+    $('nextSubTime').textContent=`${period} / ${totalPeriods}`;
+    nsl.classList.remove('soon');
+  }
   updatePitchStatus();
 }
 function updPB(){ $('periodBadge').textContent=`Period ${period} av ${totalPeriods}`; }
