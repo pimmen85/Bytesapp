@@ -108,6 +108,23 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .prematch-player-name{flex:1;font-size:17px;font-weight:600;pointer-events:none;user-select:none}
 .keeper-toggle-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .keeper-toggle-btn.is-keeper{background:rgba(245,197,24,.18);border-color:var(--accent);color:var(--accent)}
+/* Linjelås: vilka linjer spelaren roterar på */
+.line-lock-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 8px;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--muted);
+  cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.line-lock-btn.locked{background:rgba(74,222,128,.16);border-color:var(--on);color:var(--on)}
+.lock-summary{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:10px}
+.lock-sum-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.lock-sum-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+.lock-sum-auto{background:none;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;
+  font-weight:700;letter-spacing:1px;color:var(--on);text-decoration:underline;padding:2px 0;white-space:nowrap}
+.lock-sum-rows{display:flex;flex-wrap:wrap;gap:6px}
+.lock-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);
+  border-radius:999px;padding:5px 11px;font-size:13px}
+.lock-chip b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px}
+.lock-chip.short{border-color:var(--danger);color:var(--danger)}
+.lock-chip.rest{border-color:rgba(74,222,128,.45);color:var(--on)}
+.lock-sum-note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
 .ptag{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:4px}
 .tk{background:var(--accent);color:#111}
 .ta{background:rgba(74,222,128,.2);color:var(--on)}
@@ -448,6 +465,15 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       <span class="count-label">Aktiva spelare</span>
       <span class="count-val" id="activeCount">0</span>
     </div>
+    <div class="lock-summary" id="lockSummary">
+      <div class="lock-sum-head">
+        <span class="lock-sum-title">Rotationsgrupper</span>
+        <button class="lock-sum-auto" id="lockAuto" onclick="autoAssignLines()">Fördela automatiskt</button>
+      </div>
+      <div class="lock-sum-rows" id="lockChips"></div>
+      <div class="lock-sum-note" id="lockNote"></div>
+    </div>
+
     <div class="prematch-players" id="prematchList"></div>
 
     <div class="gkplan" id="gkPlanBox">
@@ -574,7 +600,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 const $=id=>document.getElementById(id);
 // ── VERSION ──
 // Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
-const APP_VERSION='1.0';
+const APP_VERSION='1.1';
 const APP_BUILD='2026-08-27';
 
 // ── SUPABASE ──
@@ -1113,6 +1139,7 @@ function setCfg(type, el){
   el.classList.add('selected');
   const val=parseInt(el.dataset.val);
   if(type==='periods'){ cfgPeriods=val; renderKeeperPlan(); }
+  if(type==='format') setTimeout(renderLockSummary,0);
   else if(type==='mins') cfgMins=val;
   else if(type==='sub') cfgSubMins=val;
   else if(type==='format') applyFormat(val);
@@ -1136,16 +1163,18 @@ function openPreMatch(teamId){
     const savedStyle=(team.playerStyles||{})[name]||'neutral';
     const styleLabel=savedStyle==='offensive'?'⚡ Offensiv':savedStyle==='passive'?'🛡 Passiv':'';
     const styleClass=savedStyle==='offensive'?'offensive':savedStyle==='passive'?'passive':'';
-    return `<div class="prematch-player active" data-name="${esc(name)}" data-keeper="false" data-style="${savedStyle}">
+    return `<div class="prematch-player active" data-name="${esc(name)}" data-keeper="false" data-style="${savedStyle}" data-lines="">
       <div class="prematch-toggle" onclick="toggleAttendance(this.closest('.prematch-player'))">✓</div>
       <div class="prematch-player-name">${esc(name)}</div>
       ${styleLabel?`<span class="ptag style-tag ${styleClass}">${styleLabel}</span>`:''}
+      <button class="line-lock-btn" onclick="cycleLineLock(this.closest('.prematch-player'))">Fri</button>
       <button class="keeper-toggle-btn" onclick="toggleKeeper(this.closest('.prematch-player'))">Målvakt</button>
     </div>`;
   }).join('');
 
   keeperPlan=[];
   renderKeeperPlan();
+  renderLockSummary();
   updateAC(); showScreen('prematch-screen');
 }
 
@@ -1158,6 +1187,7 @@ function toggleAttendance(el){
   if(el.dataset.keeper==='true') return; // keeper always attends
   el.classList.toggle('active');
   renderKeeperPlan();
+  renderLockSummary();
   updateAC();
 }
 
@@ -1191,6 +1221,87 @@ function toggleKeeper(el){
 function setKeeper(el){ toggleKeeper(el); }
 
 // cycleStyle moved to team edit (cycleRowStyle)
+
+// ── ROTATIONSGRUPPER (LINJELÅS) ──
+// En spelare kan låsas till en eller två linjer och roterar då bara där.
+// Tom lista = fri, appen väljer som vanligt.
+const LINE_CYCLE=['','def','def,mid','mid','mid,fwd','fwd'];
+const LINE_LABEL={'':'Fri','def':'Bak','def,mid':'Bak+Mitt','mid':'Mitt','mid,fwd':'Mitt+Fram','fwd':'Fram'};
+const ZONE_LABEL={def:'Bak',mid:'Mitt',fwd:'Fram'};
+
+const allowedLines=p=>(p.lines&&p.lines.length)?p.lines:null;
+const canPlayZone=(p,z)=>{const a=allowedLines(p);return !a||a.includes(z);};
+function zoneCapacity(){
+  const c={def:0,mid:0,fwd:0};
+  OFP.forEach(id=>{const z=POS.find(pp=>pp.id===id)?.zone||'mid';c[z]=(c[z]||0)+1;});
+  return c;
+}
+
+function cycleLineLock(el){
+  const cur=el.dataset.lines||'';
+  const next=LINE_CYCLE[(LINE_CYCLE.indexOf(cur)+1)%LINE_CYCLE.length];
+  el.dataset.lines=next;
+  const b=el.querySelector('.line-lock-btn');
+  b.textContent=LINE_LABEL[next];
+  b.classList.toggle('locked',!!next);
+  renderLockSummary();
+}
+
+// Fördela de närvarande på linjerna efter antal platser och spelstil
+function autoAssignLines(){
+  const rows=[...document.querySelectorAll('#prematchList .prematch-player')]
+    .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'));
+  if(!rows.length) return;
+  const cap=zoneCapacity();
+  // Backlinjen får en extra plats för målvakten
+  const slots=[...Array(cap.def+1).fill('def'),...Array(cap.mid).fill('mid'),...Array(cap.fwd).fill('fwd')];
+  // Fler spelare än platser: lägg överskottet på mitten först, så den gruppen
+  // turas om att vila i stället för att någon linje blir överfull.
+  const extraOrder=['mid','fwd','def'];
+  for(let i=0; slots.length<rows.length; i++) slots.push(extraOrder[i%extraOrder.length]);
+  // Passiva bakåt, offensiva framåt, neutrala däremellan
+  const rank=r=>({passive:0,neutral:1,offensive:2})[r.dataset.style||'neutral'];
+  const sorted=[...rows].sort((a,b)=>rank(a)-rank(b));
+  sorted.forEach((r,i)=>{
+    const z=slots[i]||'mid';
+    r.dataset.lines=z;
+    const b=r.querySelector('.line-lock-btn');
+    b.textContent=LINE_LABEL[z]; b.classList.add('locked');
+  });
+  renderLockSummary();
+}
+
+function renderLockSummary(){
+  const rows=[...document.querySelectorAll('#prematchList .prematch-player')]
+    .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'));
+  const cap=zoneCapacity();
+  const capWithGK={def:cap.def+1,mid:cap.mid,fwd:cap.fwd};   // målvakten räknas till backlinjen
+  const count={def:0,mid:0,fwd:0,fri:0};
+  rows.forEach(r=>{
+    const l=r.dataset.lines||'';
+    if(!l) count.fri++;
+    else l.split(',').forEach(z=>{ count[z]+=1/l.split(',').length; });
+  });
+
+  const chips=['def','mid','fwd'].map(z=>{
+    const n=Math.round(count[z]*10)/10, c=capWithGK[z];
+    const cls=n<c?' short':(n>c?' rest':'');
+    return `<span class="lock-chip${cls}"><b>${ZONE_LABEL[z]}</b> ${n} / ${c} platser</span>`;
+  });
+  if(count.fri) chips.push(`<span class="lock-chip"><b>Fri</b> ${count.fri}</span>`);
+  $('lockChips').innerHTML=chips.join('');
+
+  const lockedCount=rows.length-count.fri;
+  const note=$('lockNote');
+  if(!lockedCount){
+    note.textContent='Alla är fria – appen väljer positioner som vanligt. Lås spelare till en linje för att styra rotationen.';
+  } else {
+    const brist=['def','mid','fwd'].filter(z=>count[z]<capWithGK[z] && count.fri===0);
+    note.textContent=brist.length
+      ? `För få på ${brist.map(z=>ZONE_LABEL[z].toLowerCase()).join(' och ')} – de platserna fylls av någon annan.`
+      : 'Låsta spelare roterar bara på sina egna platser. Fler spelare än platser betyder att de turas om att vila.';
+  }
+}
 
 // ── MÅLVAKT PER PERIOD ──
 // keeperPlan[i] = namn på målvakten för period i+1 (null = inte vald).
@@ -1284,7 +1395,7 @@ $('startMatchBtn').onclick=startMatch;
 function startMatch(){
   const rows=document.querySelectorAll('#prematchList .prematch-player');
   const attending=[];
-  rows.forEach(r=>{ if(r.classList.contains('active')||r.classList.contains('keeper')) attending.push({name:r.dataset.name,isKeeper:r.dataset.keeper==='true'}); });
+  rows.forEach(r=>{ if(r.classList.contains('active')||r.classList.contains('keeper')) attending.push({name:r.dataset.name,isKeeper:r.dataset.keeper==='true',lines:(r.dataset.lines||'').split(',').filter(Boolean)}); });
   const fieldSize = cfgFormat; // e.g. 9 for 9v9
   const outfieldNeeded = fieldSize - 1; // excluding keeper
   if(attending.length < fieldSize){ alert(`Du behöver minst ${fieldSize} spelare för ${cfgFormat}v${cfgFormat}!`); return; }
@@ -1317,12 +1428,11 @@ function startMatch(){
     styleMap[r.dataset.name]=r.dataset.style||'neutral';
   });
 
-  mp=attending.map(p=>({name:p.name,isKeeper:p.isKeeper,playtime:0,benchTime:0,onField:false,posKey:null,posHistory:[],style:styleMap[p.name]||'neutral'}));
+  mp=attending.map(p=>({name:p.name,isKeeper:p.isKeeper,playtime:0,benchTime:0,onField:false,posKey:null,posHistory:[],style:styleMap[p.name]||'neutral',lines:p.lines||[]}));
 
-  // Assign field: keeper + first 6 outfield
+  // Assign field: keeper + outfield, med hänsyn till rotationsgrupperna
   const keeper=mp.find(p=>p.isKeeper); keeper.onField=true; keeper.posKey='GK';
-  // Mark outfield starters as onField before position assignment
-  const startField=outfield.slice(0,outfieldNeeded).map(pl=>mp.find(m=>m.name===pl.name));
+  const startField=pickFieldWithLocks(mp.filter(p=>!p.isKeeper), outfieldNeeded);
   startField.forEach(p=>{ p.onField=true; });
   assignPositionsFairly(startField, 0);
 
@@ -1362,6 +1472,8 @@ function assignPositionsFairly(players, currentElapsed){
       const histCount=hist.filter(h=>h===posId).length;          // samma ruta
       const zoneHist=hist.filter(h=>getZone(h)===zone).length;   // samma linje
       let stylePenalty=0;
+      // Rotationsgrupp: spelaren får inte hamna utanför sina egna linjer
+      if(!canPlayZone(p,zone)) stylePenalty+=1000;
       if(style==='passive'){
         // Forward bara i nödfall. Mitten lutar lätt bort i början, men blir
         // mer attraktiv för varje period spelaren stått back – annars förlorar
@@ -1408,7 +1520,9 @@ function assignPositionsFairly(players, currentElapsed){
     // Flytta ner den som står längst fram först
     inAttack.sort((a,b)=>(zoneOf(a)==='fwd'?0:1)-(zoneOf(b)==='fwd'?0:1));
     const move=inAttack[0];
-    const swap=idx.find(i=>!isPassive(i) && !ATTACK_ZONES.has(zoneOf(i)));
+    // Bytet får inte flytta någon utanför sin rotationsgrupp
+    const swap=idx.find(i=>!isPassive(i) && !ATTACK_ZONES.has(zoneOf(i))
+      && canPlayZone(players[i],zoneOf(move)) && canPlayZone(players[move],zoneOf(i)));
     if(swap===undefined) break;   // fler passiva än platser bak – går inte att lösa
     const t=assigned[move]; assigned[move]=assigned[swap]; assigned[swap]=t;
   }
@@ -1418,8 +1532,9 @@ function assignPositionsFairly(players, currentElapsed){
   for(let pass=0; pass<4; pass++){
     const fp=idx.find(i=>isPassive(i) && zoneOf(i)==='fwd');
     if(fp===undefined) break;
-    let sw=idx.find(i=>!isPassive(i) && zoneOf(i)==='def');
-    if(sw===undefined) sw=idx.find(i=>!isPassive(i) && zoneOf(i)==='mid');
+    const legal=i=>!isPassive(i) && canPlayZone(players[i],'fwd') && canPlayZone(players[fp],zoneOf(i));
+    let sw=idx.find(i=>legal(i) && zoneOf(i)==='def');
+    if(sw===undefined) sw=idx.find(i=>legal(i) && zoneOf(i)==='mid');
     if(sw===undefined) break;     // nödfall: ensam passiv forward, övriga fram är starkare
     const t=assigned[fp]; assigned[fp]=assigned[sw]; assigned[sw]=t;
   }
@@ -1438,11 +1553,46 @@ function triggerSubPreview(){
   const field=fairSort(mp.filter(p=>!p.isKeeper&&p.onField), p=>-p.playtime);
   const bSorted=fairSort(bench, p=>-p.benchTime);
   const n=Math.min(bench.length, field.length, maxSubsPerTrigger===99 ? bench.length : maxSubsPerTrigger);
-  pendingSubs=[];
-  for(let i=0;i<n;i++){ if(i>=field.length||i>=bSorted.length) break; pendingSubs.push({out:field[i],in:bSorted[i]}); }
+  pendingSubs=pairSubsWithLocks(field, bSorted, n);
   if(!pendingSubs.length) return;
   flash();
   renderSubAlert(true);
+}
+
+// Välj vilka som står på plan, utan att spränga någon linjes antal platser.
+// Mest låsta spelare först (de har minst valfrihet), inom det den som suttit mest.
+function pickFieldWithLocks(cands, needed){
+  const cap=zoneCapacity();
+  const chosen=[];
+  const place=p=>{
+    const zones=allowedLines(p)||Object.keys(cap);
+    let best=null;
+    zones.forEach(z=>{ if((cap[z]||0)>0 && (best===null||cap[z]>cap[best])) best=z; });
+    if(best===null) return false;
+    cap[best]--; chosen.push(p); return true;
+  };
+  const locked=fairSort(cands.filter(p=>allowedLines(p)), p=>-p.benchTime)
+    .sort((a,b)=>allowedLines(a).length-allowedLines(b).length);
+  const free=fairSort(cands.filter(p=>!allowedLines(p)), p=>-p.benchTime);
+  locked.forEach(p=>{ if(chosen.length<needed) place(p); });
+  free.forEach(p=>{ if(chosen.length<needed) place(p); });
+  // Skulle låsen göra det omöjligt att fylla planen, fyll på med vem som helst
+  if(chosen.length<needed){
+    [...locked,...free].forEach(p=>{ if(chosen.length<needed && !chosen.includes(p)) chosen.push(p); });
+  }
+  return chosen;
+}
+
+// Para ihop avbytare med en spelare som får ta positionen som blir ledig
+function pairSubsWithLocks(field, bench, n){
+  const pairs=[]; const used=new Set();
+  for(const out of field){
+    if(pairs.length>=n) break;
+    const z=POS.find(pp=>pp.id===out.posKey)?.zone;
+    const cand=bench.find(b=>!used.has(b)&&canPlayZone(b,z));
+    if(cand){ used.add(cand); pairs.push({out,in:cand}); }
+  }
+  return pairs;
 }
 
 // ── BENCH FAIRNESS: shuffle start order to avoid same player always on bench ──
@@ -1517,8 +1667,7 @@ function triggerSub(){
   // In: most benchTime first (sat longest)
   const bSorted=fairSort(bench, p=>-p.benchTime);
   const n=Math.min(bench.length, field.length, maxSubsPerTrigger===99 ? bench.length : maxSubsPerTrigger);
-  pendingSubs=[];
-  for(let i=0;i<n;i++){ if(i>=field.length||i>=bSorted.length) break; pendingSubs.push({out:field[i],in:bSorted[i]}); }
+  pendingSubs=pairSubsWithLocks(field, bSorted, n);
   if(!pendingSubs.length) return;
   bigFlash(); renderSubAlert();
 }
@@ -1695,12 +1844,9 @@ function nextPeriod(){
 
   // Redistribute: most benchTime this match → start on field
   // Ties → least playtime gets priority
-  const of=fairSort(mp.filter(p=>!p.isKeeper), p=>-p.benchTime);
-
-  of.forEach((p,i)=>{
-    p.onField=i<OFP.length; p.posKey=null;
-  });
-  const periodField=of.filter(p=>p.onField);
+  const cands=mp.filter(p=>!p.isKeeper);
+  const periodField=pickFieldWithLocks(cands, OFP.length);
+  cands.forEach(p=>{ p.onField=periodField.includes(p); p.posKey=null; });
   assignPositionsFairly(periodField, elapsed);
 
   updTD(); renderPitch(); renderBench();
