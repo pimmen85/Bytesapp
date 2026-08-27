@@ -2,7 +2,8 @@
 //  - HTML/appen: network-first → du får alltid senaste versionen när du är online,
 //    men appen funkar ändå offline (faller tillbaka på senast sparade kopia).
 //  - Övriga resurser (ikon, manifest): cache-first för snabb laddning.
-const CACHE = 'matchtimern-v2';
+// Höjs i takt med APP_VERSION i index.html så gammal cache städas bort vid ny version.
+const CACHE = 'matchtimern-v1.0';
 const ASSETS = [
   './',
   './index.html',

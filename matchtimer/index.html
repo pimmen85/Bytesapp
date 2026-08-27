@@ -279,7 +279,7 @@
       </div>
       <div>
         <div class="brand-title">Matchtimern</div>
-        <div class="brand-sub">Period &amp; byten</div>
+        <div class="brand-sub" id="brandSub">Period &amp; byten</div>
       </div>
     </div>
   </div>
@@ -449,6 +449,10 @@
 <script>
 (() => {
   'use strict';
+
+  // ---------- Version ----------
+  // Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
+  const APP_VERSION = '1.0';
 
   // ---------- Hjälpare ----------
   const $ = (id) => document.getElementById(id);
@@ -979,6 +983,7 @@
   $('startMatchBtn').addEventListener('click', startMatch);
 
   // ---------- Init ----------
+  $('brandSub').textContent = `Period & byten · v${APP_VERSION}`;
   renderSetup();
 
   if ('serviceWorker' in navigator) {

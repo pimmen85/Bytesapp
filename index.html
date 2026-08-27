@@ -53,6 +53,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 .history-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .history-card-team{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px}
 .history-card-date{font-size:11px;color:var(--muted)}
+.app-version{text-align:center;color:var(--muted);opacity:.55;font-size:11px;letter-spacing:.5px;padding:18px 0 6px}
 .clear-all{order:1;background:none;border:none;cursor:pointer;white-space:nowrap;padding:2px 0;
   font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;
   text-transform:uppercase;color:var(--muted);text-decoration:underline}
@@ -354,6 +355,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 
     <div class="section-label">Senaste matcher<button class="clear-all" id="clearAllStatsBtn">🧹 Rensa allt</button></div>
     <div id="historySection"></div>
+    <div class="app-version" id="appVersion"></div>
   </div>
 </div>
 
@@ -570,6 +572,11 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 
 <script>
 const $=id=>document.getElementById(id);
+// ── VERSION ──
+// Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
+const APP_VERSION='1.0';
+const APP_BUILD='2026-08-27';
+
 // ── SUPABASE ──
 const SUPA_URL='https://dcnrfttxcvbzsmvjfkzl.supabase.co';
 const SUPA_KEY='sb_publishable_CNakOF65hGaWmUA8sXhwlA_LpTo-PkS';
@@ -1865,6 +1872,7 @@ async function initApp(){
   });
 }
 
+$('appVersion').textContent=`Bytesappen v${APP_VERSION} · ${APP_BUILD}`;
 initApp();
 </script>
 </body>
