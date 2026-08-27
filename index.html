@@ -515,6 +515,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
       </div>
       <div class="lock-sum-rows" id="lockChips"></div>
       <div class="lock-sum-note" id="lockNote"></div>
+      <div class="lock-sum-note" id="seasonNote"></div>
     </div>
 
     <div class="prematch-players" id="prematchList"></div>
@@ -658,7 +659,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 const $=id=>document.getElementById(id);
 // ── VERSION ──
 // Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
-const APP_VERSION='1.2';
+const APP_VERSION='1.3';
 const APP_BUILD='2026-08-27';
 
 // ── SUPABASE ──
@@ -1231,6 +1232,7 @@ function openPreMatch(teamId){
   }).join('');
 
   keeperPlan=[];
+  buildSeasonShare(teamId);
   renderKeeperPlan();
   renderLockSummary();
   updateAC(); showScreen('prematch-screen');
@@ -1338,6 +1340,24 @@ function autoAssignLines(){
   renderLockSummary();
 }
 
+function renderSeasonNote(){
+  const el=$('seasonNote'); if(!el) return;
+  const names=Object.keys(seasonShare);
+  if(!names.length){
+    el.textContent='Säsongsrotation: ingen tidigare linjedata ännu – byggs upp efter första sparade matchen.';
+    el.style.color='';
+    return;
+  }
+  // Visa de som ligger snedast till, som kvitto på att det verkligen används
+  const skew=names.map(n=>{
+    const s=seasonShare[n], z=['def','mid','fwd'].reduce((a,b)=>s[a]>s[b]?a:b);
+    return {n,z,andel:Math.round(s[z]*100)};
+  }).filter(x=>x.andel>=55).sort((a,b)=>b.andel-a.andel).slice(0,3);
+  el.textContent=`Säsongsrotation aktiv (${names.length} spelare, senaste ${SEASON_MATCHES} matcherna)`+
+    (skew.length?` – dras bort från sin vanliga linje: ${skew.map(x=>`${x.n} ${ZONE_LABEL[x.z].toLowerCase()} ${x.andel}%`).join(', ')}.`:' – jämnt fördelat hittills.');
+  el.style.color='var(--on)';
+}
+
 function renderLockSummary(){
   const rows=[...document.querySelectorAll('#prematchList .prematch-player')]
     .filter(r=>r.classList.contains('active')||r.classList.contains('keeper'));
@@ -1368,6 +1388,33 @@ function renderLockSummary(){
       ? `För få på ${brist.map(z=>ZONE_LABEL[z].toLowerCase()).join(' och ')} – de platserna fylls av någon annan.`
       : 'Låsta spelare roterar bara på sina egna platser. Fler spelare än platser betyder att de turas om att vila.';
   }
+  renderSeasonNote();
+}
+
+// ── SÄSONGSROTATION ──
+// Summerar tid per linje från lagets senaste matcher och räknar ut hur stor
+// andel av sin speltid varje spelare haft bak/mitt/fram. Den som legat över
+// snittet på en linje dras därifrån nästa match, så samma tjej inte alltid
+// får back. Påverkar bara valet mellan i övrigt likvärdiga platser – de hårda
+// reglerna (rotationsgrupper och passiva spelare) väger tyngre.
+const SEASON_MATCHES=6;      // hur många matcher bakåt som vägs in
+const SEASON_WEIGHT=1.1;     // hur hårt historiken styr (nudge, inte diktat)
+let seasonShare={};
+
+function buildSeasonShare(teamId){
+  seasonShare={};
+  const rows=hist.filter(h=>h.teamId===teamId).slice(0,SEASON_MATCHES);
+  const sum={};
+  rows.forEach(m=>(m.playtimes||[]).forEach(p=>{
+    if(!p.zones) return;                       // äldre matcher saknar linjedata
+    if(!sum[p.name]) sum[p.name]={def:0,mid:0,fwd:0};
+    ['def','mid','fwd'].forEach(z=>sum[p.name][z]+=(p.zones[z]||0));
+  }));
+  Object.keys(sum).forEach(name=>{
+    const t=sum[name].def+sum[name].mid+sum[name].fwd;
+    if(t>0) seasonShare[name]={def:sum[name].def/t,mid:sum[name].mid/t,fwd:sum[name].fwd/t};
+  });
+  return Object.keys(seasonShare).length;
 }
 
 // ── BYTESSCHEMA: simulera matchen i förväg ──
@@ -1556,7 +1603,7 @@ function startMatch(){
     styleMap[r.dataset.name]=r.dataset.style||'neutral';
   });
 
-  mp=attending.map(p=>({name:p.name,isKeeper:p.isKeeper,playtime:0,benchTime:0,onField:false,posKey:null,posHistory:[],style:styleMap[p.name]||'neutral',lines:p.lines||[]}));
+  mp=attending.map(p=>({name:p.name,isKeeper:p.isKeeper,playtime:0,benchTime:0,onField:false,posKey:null,posHistory:[],style:styleMap[p.name]||'neutral',lines:p.lines||[],zoneTime:{def:0,mid:0,fwd:0}}));
 
   // Assign field: keeper + outfield, med hänsyn till rotationsgrupperna
   const keeper=mp.find(p=>p.isKeeper); keeper.onField=true; keeper.posKey='GK';
@@ -1602,6 +1649,9 @@ function assignPositionsFairly(players, currentElapsed){
       let stylePenalty=0;
       // Rotationsgrupp: spelaren får inte hamna utanför sina egna linjer
       if(!canPlayZone(p,zone)) stylePenalty+=1000;
+      // Säsongsrotation: dra bort från linjer spelaren redan haft mest av
+      const sh=seasonShare[p.name];
+      if(sh) stylePenalty+=((sh[zone]||0)-1/3)*SEASON_WEIGHT;
       if(style==='passive'){
         // Forward bara i nödfall. Mitten lutar lätt bort i början, men blir
         // mer attraktiv för varje period spelaren stått back – annars förlorar
@@ -1764,7 +1814,15 @@ function updatePitchStatus(){
 
 function tick(){
   elapsed++;
-  mp.forEach(p=>{ if(p.onField) p.playtime++; else if(!p.isKeeper) p.benchTime++; });
+  mp.forEach(p=>{
+    if(p.onField) p.playtime++; else if(!p.isKeeper) p.benchTime++;
+    // Räkna sekunder per linje (målvakt räknas som back)
+    if(p.onField&&p.posKey){
+      const z=p.posKey==='GK'?'def':(POS.find(q=>q.id===p.posKey)?.zone||'mid');
+      if(!p.zoneTime) p.zoneTime={def:0,mid:0,fwd:0};
+      p.zoneTime[z]=(p.zoneTime[z]||0)+1;
+    }
+  });
 
   if(elapsed===nextSubAt){ nextSubAt+=SI; triggerSub(); }
 
@@ -1991,8 +2049,10 @@ function nextPeriod(){
 }
 
 async function saveResult(){
+  // Spara även tid per linje, så positionerna kan roteras över säsongen
   await saveHistory_db({teamId:matchTeamId,date:new Date().toLocaleDateString('sv-SE'),
-    playtimes:[...mp].sort((a,b)=>b.playtime-a.playtime).map(p=>({name:p.name,seconds:p.playtime}))});
+    playtimes:[...mp].sort((a,b)=>b.playtime-a.playtime)
+      .map(p=>({name:p.name,seconds:p.playtime,zones:p.zoneTime||null}))});
 }
 
 function closeOv(){
