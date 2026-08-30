@@ -659,7 +659,7 @@ h1,h2,h3,.condensed{font-family:'Barlow Condensed',sans-serif}
 const $=id=>document.getElementById(id);
 // ── VERSION ──
 // Höjs vid varje publicerad ändring, så man kan se om enheten har senaste bygget.
-const APP_VERSION='1.3';
+const APP_VERSION='1.4';
 const APP_BUILD='2026-08-27';
 
 // ── SUPABASE ──
@@ -1233,6 +1233,9 @@ function openPreMatch(teamId){
 
   keeperPlan=[];
   buildSeasonShare(teamId);
+  // Sätt rotationsgrupper direkt, så ingen står kvar som "Fri" och kan glida
+  // mellan linjerna under matchen. Går att justera för hand efteråt.
+  autoAssignLines();
   renderKeeperPlan();
   renderLockSummary();
   updateAC(); showScreen('prematch-screen');
@@ -1323,20 +1326,55 @@ function autoAssignLines(){
   if(!rows.length) return;
   const cap=zoneCapacity();
   // Backlinjen får en extra plats för målvakten
-  const slots=[...Array(cap.def+1).fill('def'),...Array(cap.mid).fill('mid'),...Array(cap.fwd).fill('fwd')];
-  // Fler spelare än platser: lägg överskottet på mitten först, så den gruppen
-  // turas om att vila i stället för att någon linje blir överfull.
-  const extraOrder=['mid','fwd','def'];
-  for(let i=0; slots.length<rows.length; i++) slots.push(extraOrder[i%extraOrder.length]);
-  // Passiva bakåt, offensiva framåt, neutrala däremellan
-  const rank=r=>({passive:0,neutral:1,offensive:2})[r.dataset.style||'neutral'];
-  const sorted=[...rows].sort((a,b)=>rank(a)-rank(b));
-  sorted.forEach((r,i)=>{
-    const z=slots[i]||'mid';
-    r.dataset.lines=z;
+  const quota={def:cap.def+1, mid:cap.mid, fwd:cap.fwd};
+  // Fler spelare än platser: lägg överskottet på linjen med FLEST platser, så
+  // bänktiden delas av så många som möjligt och speltiden blir jämnast.
+  const bySize=['def','mid','fwd'].sort((a,b)=>quota[b]-quota[a]);
+  let extra=rows.length-(quota.def+quota.mid+quota.fwd);
+  for(let i=0; extra>0; i++, extra--) quota[bySize[i%bySize.length]]++;
+
+  // Kostnad för att sätta en spelare på en linje: spelstil + förra matchernas
+  // linjer. Den som stått mycket back dras mot mitt/fram den här matchen.
+  const cost=(r,z)=>{
+    const st=r.dataset.style||'neutral';
+    let c=0;
+    if(st==='passive') c += z==='fwd'?3:(z==='mid'?0.5:0);
+    else if(st==='offensive') c += z==='def'?2:(z==='fwd'?-0.5:0);
+    const sh=seasonShare[r.dataset.name];
+    if(sh) c += ((sh[z]||0)-1/3)*3;      // väger tungt: linjen gäller hela matchen
+    return c + Math.random()*0.3;
+  };
+
+  const left={...quota}, done=new Set();
+  const setLine=(r,z)=>{
+    r.dataset.lines=z; done.add(r); left[z]--;
     const b=r.querySelector('.line-lock-btn');
     b.textContent=LINE_LABEL[z]; b.classList.add('locked');
+  };
+  const isPass=r=>(r.dataset.style||'neutral')==='passive';
+  const ledig=(...zs)=>zs.find(x=>left[x]>0);
+
+  // 1. Passiva placeras först – de är hårdast styrda. Backlinjen i första hand,
+  //    och högst EN passiv i anfallshalvan (mitt + fram) tillsammans.
+  //    Den som stått mest back tidigare får ta den platsen på mitten.
+  let attackPass=0;
+  const defShare=r=>(seasonShare[r.dataset.name]||{}).def||0;
+  const passives=rows.filter(isPass).sort((a,b)=>defShare(b)-defShare(a));
+  passives.forEach((r,i)=>{
+    let z;
+    if(i===0 && defShare(r)>0.45 && left.mid>0) z='mid';       // rotera upp den mest back-tunga
+    else z = ledig('def') || (attackPass<1 ? ledig('mid','fwd') : null) || ledig('def','mid','fwd') || bySize[0];
+    setLine(r,z);
+    if(z!=='def') attackPass++;
   });
+
+  // 2. Övriga efter kostnad (spelstil + säsongshistorik)
+  const others=rows.filter(r=>!isPass(r));
+  const pairs=[];
+  others.forEach(r=>['def','mid','fwd'].forEach(z=>pairs.push({r,z,c:cost(r,z)})));
+  pairs.sort((a,b)=>a.c-b.c);
+  pairs.forEach(({r,z})=>{ if(done.has(r)||left[z]<=0) return; setLine(r,z); });
+  others.forEach(r=>{ if(!done.has(r)) setLine(r, ledig('def','mid','fwd')||bySize[0]); });
   renderLockSummary();
 }
 
